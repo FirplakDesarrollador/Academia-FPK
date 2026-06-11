@@ -1,0 +1,374 @@
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0b58a2;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.backBtn:hover {
+  text-decoration: underline;
+}
+
+.adminControls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.editToggleBtn {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.editToggleBtn:hover {
+  background: #f1f5f9;
+}
+
+.editActive {
+  background: #0b58a2;
+  color: white;
+  border-color: #0b58a2;
+}
+
+/* General Section */
+.generalSection {
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  margin-bottom: 10px;
+}
+
+.sectionTitleMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionTitleMain h2 {
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: #0b58a2;
+  margin: 0;
+}
+
+.editIcon {
+  color: #64748b;
+  cursor: pointer;
+}
+
+.editBtn, .editBtnSmall {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #0b58a2;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.editBtnSmall {
+  font-size: 0.8rem;
+}
+
+.editBtn:hover, .editBtnSmall:hover {
+  text-decoration: underline;
+}
+
+/* Banner */
+.bannerContainer {
+  margin: 20px 0;
+}
+
+.banner {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  background: #f8fafc;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.bannerImg {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Add Activity */
+.addActivityContainer, .addActivityContainerModule {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+}
+
+.addActivityBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #0b58a2;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.addActivityBtn:hover {
+  color: #094a8a;
+  text-decoration: underline;
+}
+
+/* Content Sections */
+.contentSections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.moduleWrapper {
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.moduleHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  border-radius: 4px;
+}
+
+.moduleHeaderRow:hover {
+  background-color: #f8fafc;
+}
+
+.moduleInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.moveHandle {
+  color: #64748b;
+  cursor: move;
+}
+
+.moduleName {
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: #0b58a2;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+.editIconInline {
+  color: #64748b;
+  cursor: pointer;
+}
+
+/* Lessons */
+.lessonsContainer {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.lessonRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  transition: background 0.2s;
+}
+
+.lessonRow:hover {
+  background: #f1f5f9;
+}
+
+.lessonLeftWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.lessonLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  transition: color 0.15s;
+}
+
+.lessonLink:hover {
+  color: #1a2f3c;
+}
+
+.inlineInput {
+  background: white;
+  border: 1px solid #0b58a2;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  color: #334155;
+  outline: none;
+  min-width: 300px;
+  box-shadow: 0 0 0 3px rgba(11, 88, 162, 0.1);
+  font-family: inherit;
+  margin: -5px 0;
+}
+
+.dragging {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+  background: white !important;
+  z-index: 100 !important;
+}
+
+.moveHandleSmall {
+  color: #94a3b8;
+  cursor: grab;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.moveHandleSmall:hover {
+  color: #334155;
+}
+
+.moveHandleSmall:active {
+  cursor: grabbing;
+}
+
+.iconBox {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lessonName {
+  font-size: 1rem;
+  color: #0b58a2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editIconInlineSmall {
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.lessonRight {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.completionStatus {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 4px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.completedStatus {
+  border: none;
+  background: transparent;
+}
+
+
+.addSectionContainer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.addSectionBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #0b58a2;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.addSectionBtn:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .lessonRight {
+    gap: 10px;
+  }
+  
+  .moduleName {
+    font-size: 1.1rem;
+  }
+}

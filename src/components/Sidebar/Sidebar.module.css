@@ -1,0 +1,90 @@
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--primary-soft);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+  padding: 0.5rem;
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.5px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.navItem:hover {
+  background-color: var(--primary-soft);
+  opacity: 1;
+}
+
+.active {
+  background-color: var(--primary);
+  color: white;
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(37, 65, 83, 0.2);
+}
+
+.active:hover {
+  background-color: var(--primary-light);
+}
+
+.footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--primary-soft);
+}
+
+.helpCard {
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.helpCard button {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.75rem;
+  border-radius: calc(var(--radius) / 2);
+  border: none;
+  background: white;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
