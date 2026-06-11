@@ -235,8 +235,8 @@ export default function ColaborativasContent({ completedLessons, onToggleComplet
         { title: 'Generalidades de Planner', type: 'link', url: 'https://support.microsoft.com/es-es/office/introducci%C3%B3n-a-planner-en-teams-7a5e58f1-2cee-41b0-a41d-55d512c4a59c' },
         { title: 'Planear un evento en Planner', type: 'link', url: 'https://support.microsoft.com/es-es/office/planear-un-evento-en-microsoft-planner-1c38ad8d-9201-42de-8a7b-1e68fcef1769' },
         { title: 'Crear un plan con Planner en Teams', type: 'link', url: 'https://support.microsoft.com/es-es/office/crear-su-plan-en-microsoft-planner-6f358ec8-cc6c-4bd8-9ea3-27b7f4f9e525' },
-        { title: 'Políticas de planner', type: 'video', url: '/videos/Politicas_de_planner.mp4' },
-        { title: 'Buenas prácticas en Planner', type: 'video', url: '/videos/Buenas_Practicas_de_Uso_de_Planner.mp4' },
+        { title: 'Políticas de planner', type: 'video', url: 'https://jdtjtkncptwqdhlxmzds.supabase.co/storage/v1/object/public/videos/Politicas_de_planner.mp4' },
+        { title: 'Buenas prácticas en Planner', type: 'video', url: 'https://jdtjtkncptwqdhlxmzds.supabase.co/storage/v1/object/public/videos/Buenas_Practicas_de_Uso_de_Planner.mp4' },
         { title: 'Aprendizaje en vídeo de Microsoft Planner', type: 'link', url: 'https://support.microsoft.com/es-es/office/aprendizaje-en-v%C3%ADdeo-de-microsoft-planner-4d71390f-08d8-4db0-84ea-92fb078687c7', isHidden: true },
         { title: 'Test de políticas de uso de planner', type: 'quiz', url: '/cursos/283c7f14-4c73-47df-a0be-ad8e19ab8c3a/evaluacion/fe3761db-ff07-4315-a7f6-aed6c1305c0e' },
       ]
@@ -284,8 +284,8 @@ export default function ColaborativasContent({ completedLessons, onToggleComplet
       logo: '/logos/fpknet.png',
       color: '#1d6fb8',
       resources: [
-        { title: 'Inducción portal fpknet', type: 'video', url: '/videos/Inducci%C3%B3n%20Portal%20PFKnet.mp4' },
-        { title: 'Mesa de ayuda en Freshdesk', type: 'video', url: '/videos/Mesa%20de%20ayuda%20en%20Freshdesk.mp4' },
+        { title: 'Inducción portal fpknet', type: 'video', url: 'https://jdtjtkncptwqdhlxmzds.supabase.co/storage/v1/object/public/videos/Induccion_Portal_PFKnet.mp4' },
+        { title: 'Mesa de ayuda en Freshdesk', type: 'video', url: 'https://jdtjtkncptwqdhlxmzds.supabase.co/storage/v1/object/public/videos/Mesa%20de%20ayuda%20en%20Freshdesk.mp4' },
       ]
     },
     {
