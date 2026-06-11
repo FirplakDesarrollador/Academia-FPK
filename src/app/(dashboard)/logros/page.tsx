@@ -1,3 +1,5 @@
+"use client";
+
 import ComingSoonPage from "@/components/ComingSoon/ComingSoonPage";
 import { GraduationCap } from "lucide-react";
 
