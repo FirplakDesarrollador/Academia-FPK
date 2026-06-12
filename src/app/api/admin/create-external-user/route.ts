@@ -1,37 +1,43 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Usamos la Service Role Key para tener privilegios de admin,
-// esto permite crear cuentas de usuario sin cerrar la sesión actual de la persona de RRHH.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 export async function POST(request: Request) {
   try {
-    const { email, password, empleadoId } = await request.json();
+    const { email, password, nombreCompleto, cargo } = await request.json();
 
     if (!serviceRoleKey) {
       return NextResponse.json(
-        { error: 'SUPABASE_SERVICE_ROLE_KEY no configurada en las variables de entorno' },
+        { error: 'SUPABASE_SERVICE_ROLE_KEY no configurada' },
         { status: 500 }
       );
     }
 
-    // 1. Crear el usuario en Auth de Supabase
+    if (!email || !password || !nombreCompleto) {
+      return NextResponse.json(
+        { error: 'Email, contraseña y nombre completo son obligatorios' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // No enviamos correos de verificación a estas cuentas
+      email_confirm: true,
       user_metadata: {
-        rol: 'OPERARIO'
-      }
+        rol: 'OPERARIO',
+        tipo: 'externo',
+      },
     });
 
     if (authError) {
@@ -48,26 +54,28 @@ export async function POST(request: Request) {
       .eq('nombre', 'OPERARIO')
       .single();
 
-    if (roleError) throw new Error(`Ocurrió un error al buscar el rol: ${roleError.message}`);
+    if (roleError) throw new Error(`Error al buscar el rol: ${roleError.message}`);
 
-    // 3. Vincularlo en la tabla de academia.usuarios
-    // NOTA: 'id' es el UUID de Supabase Auth; 'empleado_id' enlaza al registro de RRHH.
+    // 3. Insertar en academia.usuarios SIN empleado_id (usuario externo)
     const { error: insertError } = await supabaseAdmin
       .schema('academia')
       .from('usuarios')
       .insert({
         id: newUserId,
-        empleado_id: empleadoId,
+        empleado_id: null,
         rol_id: roleData.id,
-        tipo: 'empleado',
+        nombre_completo: nombreCompleto.trim(),
+        email_visible: email.trim().toLowerCase(),
+        cargo: cargo?.trim() || null,
+        tipo: 'externo',
       });
 
-    if (insertError) throw new Error(`Error vinculando cuenta a la academia: ${insertError.message}`);
+    if (insertError)
+      throw new Error(`Error registrando usuario externo: ${insertError.message}`);
 
     return NextResponse.json({ success: true, user: authData.user }, { status: 201 });
-
   } catch (error: any) {
-    console.error('Error creating user:', error);
+    console.error('Error creating external user:', error);
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
