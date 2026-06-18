@@ -169,7 +169,7 @@ export default function ReporteCalificador() {
         const { data: insData, error: insError } = await supabase
           .schema("academia")
           .from("inscripciones")
-          .select("id, empleado_id, metadata")
+          .select("id, empleado_id, usuario_id, metadata")
           .eq("curso_id", selectedCurso)
           .limit(100000);
 
@@ -179,8 +179,12 @@ export default function ReporteCalificador() {
 
         const insToUser: Record<string, string> = {};
         insData?.forEach(ins => {
-            const u = usersData?.find(u => String(u.empleado_id) === String(ins.empleado_id));
-            if (u) insToUser[ins.id] = u.id;
+            if (ins.usuario_id) {
+                insToUser[ins.id] = ins.usuario_id;
+            } else {
+                const u = usersData?.find(u => String(u.empleado_id) === String(ins.empleado_id));
+                if (u) insToUser[ins.id] = u.id;
+            }
         });
 
         let vistasLookup: Record<string, boolean | string> = {};
@@ -198,7 +202,7 @@ export default function ReporteCalificador() {
                 const uId = insToUser[ins.id];
                 if (uId && ins.metadata) {
                     if (Array.isArray(ins.metadata.completedResources)) {
-                        vistasLookup[`${uId}_progreso_colab`] = `${ins.metadata.completedResources.length} / 61`;
+                        vistasLookup[`${uId}_progreso_colab`] = `${ins.metadata.completedResources.length} / 60`;
                     }
                     if (ins.metadata.evidencias && ins.metadata.evidencias['Creación de tarea en planner']) {
                         vistasLookup[`${uId}_11111111-1111-1111-1111-111111111111`] = ins.metadata.evidencias['Creación de tarea en planner'];
