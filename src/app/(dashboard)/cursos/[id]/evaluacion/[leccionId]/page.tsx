@@ -138,7 +138,9 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
   };
 
   const handleSubmit = async () => {
-    const finalScore = calculateScore();
+    const rawScore = calculateScore();
+    const finalScore = totalQuestions > 0 ? parseFloat(((rawScore / totalQuestions) * 100).toFixed(2)) : 0;
+    
     setScore(finalScore);
     setSubmitted(true);
 
@@ -163,7 +165,7 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
             leccion_id: params.leccionId,
             usuario_id: profile.id,
             puntuacion: finalScore,
-            puntuacion_maxima: totalQuestions,
+            puntuacion_maxima: 100,
             respuestas: answers,
             estado: 'Calificado',
             updated_at: new Date().toISOString()
@@ -291,7 +293,7 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
         ) : (
           <div className={styles.resultsArea}>
             <h2>Revisión del intento</h2>
-            <p>Puntuación: <strong>{score}</strong> / {totalQuestions}</p>
+            <p>Puntuación: <strong>{score}</strong> / 100</p>
             <Link href={`/cursos/${params.id}`} className={styles.finishBtn}>
               Finalizar revisión y volver al curso
             </Link>
