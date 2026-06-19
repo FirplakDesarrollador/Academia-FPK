@@ -15,7 +15,7 @@ interface Lesson {
   tipo: string;
   duracion_estimada: number;
   orden: number;
-  contenido?: string;
+  contenido?: any;
 }
 
 interface Module {
@@ -251,58 +251,107 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
     <div className={`${styles.layout} animate-fade-in`}>
       {/* Video / Content Main Area */}
       <div className={styles.mainContent}>
-        {currentLesson.tipo === 'evaluacion' ? (
-          <div className={styles.evalSection}>
-            <EvaluationViewer 
-              data={currentLesson.contenido || ""} 
-              onComplete={handleComplete} 
-              completed={completed} 
-            />
-          </div>
-        ) : (
-          <div className={styles.videoSection}>
-            {currentLesson.tipo === 'video' ? (
-              currentLesson.contenido ? (
-                <video 
-                  key={currentLesson.id}
-                  controls 
-                  className={styles.videoPlayer}
-                  poster={course?.imagen_url || ""}
-                  onEnded={() => setVideoEnded(true)}
-                >
-                  <source src={currentLesson.contenido} type="video/mp4" />
-                  Tu navegador no soporta el elemento de video.
-                </video>
-              ) : (
-                <div className={styles.videoPlaceholder}>
-                  <PlayCircle size={64} opacity={0.8} />
-                  <p>El reproductor de vídeo aparecerá aquí</p>
-                </div>
-              )
-            ) : currentLesson.contenido ? (
-              currentLesson.contenido.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                <div className={styles.imageContainer}>
-                  <img src={currentLesson.contenido} alt={currentLesson.nombre} className={styles.contentImage} />
-                </div>
-              ) : currentLesson.contenido.endsWith('.pdf') ? (
-                <iframe src={currentLesson.contenido} className={styles.pdfViewer} title={currentLesson.nombre} />
-              ) : (
-                <div className={styles.documentContent}>
-                   {currentLesson.contenido}
-                </div>
-              )
-            ) : (
-              <div className={styles.videoPlaceholder}>
-                <FileText size={64} opacity={0.8} />
-                <p>El visor de documentos se mostrará aquí</p>
+        {(() => {
+          // Extraer el contenido real manejando JSON o string
+          let contData = currentLesson.contenido;
+          let contUrl = "";
+          let contTexto = "";
+          
+          if (typeof contData === 'string') {
+            try {
+              const parsed = JSON.parse(contData);
+              contUrl = parsed.url || "";
+              contTexto = parsed.texto || parsed.descripcion || "";
+            } catch {
+              contUrl = contData; // String plano
+              contTexto = contData;
+            }
+          } else if (typeof contData === 'object' && contData !== null) {
+            contUrl = contData.url || "";
+            contTexto = contData.texto || contData.descripcion || "";
+          }
+
+          // Función para detectar si es youtube
+          const getYoutubeId = (url: string) => {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+          };
+
+          const ytId = contUrl ? getYoutubeId(contUrl) : null;
+
+          if (currentLesson.tipo === 'evaluacion') {
+            return (
+              <div className={styles.evalSection}>
+                <EvaluationViewer 
+                  data={currentLesson.contenido || ""} 
+                  onComplete={handleComplete} 
+                  completed={completed} 
+                />
               </div>
-            )}
-          </div>
-        )}
-        
-        <div className={styles.videoInfo}>
-          <h1 className={styles.videoTitle}>{currentLesson.nombre}</h1>
-          <div className={styles.videoMeta}>
+            );
+          } else if (currentLesson.tipo === 'video') {
+            return (
+              <div className={styles.videoSection}>
+                {contUrl ? (
+                  ytId ? (
+                    <iframe 
+                      key={currentLesson.id}
+                      className={styles.videoPlayer}
+                      src={`https://www.youtube.com/embed/${ytId}?rel=0`} 
+                      title={currentLesson.nombre}
+                      frameBorder="0" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
+                      onLoad={() => setVideoEnded(true)} // Youtube no avisa cuando termina facilmente sin API, lo marcamos como ended al cargar
+                    />
+                  ) : (
+                    <video 
+                      key={currentLesson.id}
+                      controls 
+                      className={styles.videoPlayer}
+                      poster={course?.imagen_url || ""}
+                      onEnded={() => setVideoEnded(true)}
+                    >
+                      <source src={contUrl} type="video/mp4" />
+                      Tu navegador no soporta el elemento de video.
+                    </video>
+                  )
+                ) : (
+                  <div className={styles.videoPlaceholder}>
+                    <PlayCircle size={64} opacity={0.8} />
+                    <p>El reproductor de vídeo aparecerá aquí</p>
+                  </div>
+                )}
+              </div>
+            );
+          } else {
+            // Archivo o Texto
+            return (
+              <div className={styles.videoSection}>
+                {contUrl && contUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <div className={styles.imageContainer}>
+                    <img src={contUrl} alt={currentLesson.nombre} className={styles.contentImage} />
+                  </div>
+                ) : contUrl && contUrl.endsWith('.pdf') ? (
+                  <iframe src={contUrl} className={styles.pdfViewer} title={currentLesson.nombre} />
+                ) : contUrl ? (
+                  <div className={styles.documentContent} style={{ textAlign: "center", padding: "40px" }}>
+                    <a href={contUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--primary)", color: "white", padding: "10px 20px", borderRadius: "8px", textDecoration: "none" }}>
+                      <FileText size={20} /> Descargar Archivo / Abrir Enlace
+                    </a>
+                    {contTexto && <p style={{ marginTop: "20px", color: "var(--text-secondary)" }}>{contTexto}</p>}
+                  </div>
+                ) : (
+                  <div className={styles.documentContent} dangerouslySetInnerHTML={{ __html: contTexto || "" }} />
+                )}
+              </div>
+            );
+          }
+        })()}
+      <div className={styles.videoInfo}>
+        <h1 className={styles.videoTitle}>{currentLesson.nombre}</h1>
+        <div className={styles.videoMeta}>
             {currentLesson.duracion_estimada && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Clock size={16} /> {currentLesson.duracion_estimada} min
