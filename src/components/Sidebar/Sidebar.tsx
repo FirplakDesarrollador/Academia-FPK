@@ -12,7 +12,8 @@ import {
   LifeBuoy,
   Users,
   Award,
-  ClipboardList
+  ClipboardList,
+  PlusCircle
 } from "lucide-react";
 import { useAuth } from "@/components/Providers/AuthProvider";
 import styles from "./Sidebar.module.css";
@@ -21,6 +22,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Página principal", href: "/" },
   { icon: BookOpen, label: "Mis Cursos", href: "/cursos" },
   { icon: Award, label: "Calificaciones", href: "/calificaciones" },
+  { icon: PlusCircle, label: "Gestión de Cursos", href: "/admin/cursos", requireAdmin: true },
   { icon: Users, label: "Gestión de Usuarios", href: "/admin/usuarios", requireAdmin: true },
   { icon: ClipboardList, label: "Reporte Calificador", href: "/admin/calificaciones", requireAdmin: true },
 ];
