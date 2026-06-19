@@ -27,6 +27,8 @@ export default function CrearCurso() {
     activo: true,
   });
 
+  const [nuevaCategoria, setNuevaCategoria] = useState("");
+
   useEffect(() => {
     fetchCategorias();
   }, []);
@@ -59,7 +61,28 @@ export default function CrearCurso() {
 
     try {
       if (!formData.nombre.trim()) throw new Error("El nombre del curso es obligatorio");
-      if (!formData.categoria_id) throw new Error("Debes seleccionar una categoría");
+      
+      let finalCategoriaId = formData.categoria_id;
+
+      if (finalCategoriaId === "otra") {
+        if (!nuevaCategoria.trim()) throw new Error("Debes especificar el nombre de la nueva categoría");
+        
+        // Crear la nueva categoría
+        const { data: newCatData, error: catError } = await supabase
+          .schema("academia")
+          .from("categorias")
+          .insert([{ nombre: nuevaCategoria.trim(), descripcion: "" }])
+          .select();
+          
+        if (catError) throw catError;
+        if (newCatData && newCatData.length > 0) {
+          finalCategoriaId = newCatData[0].id;
+        } else {
+          throw new Error("No se pudo crear la nueva categoría");
+        }
+      } else if (!finalCategoriaId) {
+        throw new Error("Debes seleccionar una categoría");
+      }
 
       const { data, error: insertError } = await supabase
         .schema("academia")
@@ -69,7 +92,7 @@ export default function CrearCurso() {
             nombre: formData.nombre.trim(),
             descripcion: formData.descripcion.trim(),
             imagen_url: formData.imagen_url.trim() || null,
-            categoria_id: formData.categoria_id,
+            categoria_id: finalCategoriaId,
             activo: formData.activo,
           }
         ])
@@ -177,7 +200,20 @@ export default function CrearCurso() {
                       {cat.nombre}
                     </option>
                   ))}
+                  <option value="otra">Otra (Añadir nueva)...</option>
                 </select>
+
+                {formData.categoria_id === "otra" && (
+                  <input
+                    type="text"
+                    className={styles.input}
+                    placeholder="Escribe la nueva categoría"
+                    value={nuevaCategoria}
+                    onChange={(e) => setNuevaCategoria(e.target.value)}
+                    required
+                    style={{ marginTop: "8px" }}
+                  />
+                )}
               </div>
 
               <div className={styles.inputGroup} style={{ flex: 1 }}>
