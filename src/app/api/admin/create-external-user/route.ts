@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 export async function POST(request: Request) {
   try {
-    const { email, password, nombreCompleto, cargo } = await request.json();
+    const { email, password, nombreCompleto, cargo, cedula } = await request.json();
 
     if (!serviceRoleKey) {
       return NextResponse.json(
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
         email_visible: email.trim().toLowerCase(),
         cargo: cargo?.trim() || null,
         tipo: 'externo',
+        cedula: cedula?.trim() || null,
       });
 
     if (insertError)

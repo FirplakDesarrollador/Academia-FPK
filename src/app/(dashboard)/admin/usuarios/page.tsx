@@ -61,6 +61,7 @@ export default function GestionUsuarios() {
   const [showExternoModal, setShowExternoModal] = useState(false);
   const [externoForm, setExternoForm] = useState({
     nombreCompleto: "",
+    cedula: "",
     email: "",
     cargo: "",
     password: "Academia2026*",
@@ -173,6 +174,7 @@ export default function GestionUsuarios() {
           password: externoForm.password,
           nombreCompleto: externoForm.nombreCompleto,
           cargo: externoForm.cargo,
+          cedula: externoForm.cedula,
         }),
       });
 
@@ -189,7 +191,7 @@ export default function GestionUsuarios() {
 
       setExternos((updated || []) as UsuarioExterno[]);
       setShowExternoModal(false);
-      setExternoForm({ nombreCompleto: "", email: "", cargo: "", password: "Academia2026*" });
+      setExternoForm({ nombreCompleto: "", cedula: "", email: "", cargo: "", password: "Academia2026*" });
       alert(`Cuenta externa creada: ${externoForm.email}`);
     } catch (error: any) {
       setExternoError(error.message);
@@ -679,6 +681,21 @@ export default function GestionUsuarios() {
                     value={externoForm.nombreCompleto}
                     onChange={(e) =>
                       setExternoForm((f) => ({ ...f, nombreCompleto: e.target.value }))
+                    }
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                    required
+                  />
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label>Cédula *</label>
+                  <input
+                    type="text"
+                    className={styles.searchInput}
+                    placeholder="Ej: 1020304050"
+                    value={externoForm.cedula}
+                    onChange={(e) =>
+                      setExternoForm((f) => ({ ...f, cedula: e.target.value }))
                     }
                     style={{ width: "100%", boxSizing: "border-box" }}
                     required
