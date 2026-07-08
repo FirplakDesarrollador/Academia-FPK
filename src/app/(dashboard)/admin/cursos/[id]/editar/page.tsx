@@ -300,7 +300,21 @@ export default function EditorCurso() {
   const updatePregunta = (index: number, key: string, value: any) => {
     setLeccionEdit((prev: any) => {
       const newPreguntas = [...prev.evaluacion_preguntas];
-      newPreguntas[index] = { ...newPreguntas[index], [key]: value };
+      let updatedPregunta = { ...newPreguntas[index], [key]: value };
+
+      // Si se cambia el tipo, resetear las opciones y la respuesta correcta según el nuevo tipo
+      if (key === "tipo") {
+        if (value === "verdadero_falso") {
+          updatedPregunta.opciones = ["Verdadero", "Falso"];
+          updatedPregunta.respuesta_correcta = "Verdadero";
+        } else if (newPreguntas[index].tipo === "verdadero_falso") {
+          // Venía de verdadero_falso, resetear a opciones genéricas
+          updatedPregunta.opciones = ["Opción 1", "Opción 2"];
+          updatedPregunta.respuesta_correcta = "Opción 1";
+        }
+      }
+
+      newPreguntas[index] = updatedPregunta;
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
   };
