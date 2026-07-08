@@ -241,10 +241,26 @@ export default function EditorCurso() {
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `cursos/${cursoId}/${fileName}`;
 
-      const { error } = await supabase.storage.from('videos').upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
+      const response = await fetch('/api/admin/upload-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: filePath })
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al obtener permiso de subida');
+      }
+
+      const { data: signedData } = await response.json();
+
+      if (!signedData || !signedData.token) {
+        throw new Error('No se pudo obtener el token de subida');
+      }
+
+      const { error } = await supabase.storage
+        .from('videos')
+        .uploadToSignedUrl(filePath, signedData.token, file);
 
       if (error) {
         throw error;
