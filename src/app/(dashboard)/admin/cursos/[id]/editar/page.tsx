@@ -307,10 +307,21 @@ export default function EditorCurso() {
         if (value === "verdadero_falso") {
           updatedPregunta.opciones = ["Verdadero", "Falso"];
           updatedPregunta.respuesta_correcta = "Verdadero";
-        } else if (newPreguntas[index].tipo === "verdadero_falso") {
-          // Venía de verdadero_falso, resetear a opciones genéricas
+          updatedPregunta.subpreguntas = undefined;
+          updatedPregunta.opciones_globales = undefined;
+        } else if (value === "emparejamiento") {
+          updatedPregunta.opciones = undefined;
+          updatedPregunta.respuesta_correcta = undefined;
+          updatedPregunta.subpreguntas = [
+            { texto: "Elemento 1", respuesta_correcta: "Respuesta A" },
+            { texto: "Elemento 2", respuesta_correcta: "Respuesta B" },
+          ];
+          updatedPregunta.opciones_globales = ["Respuesta A", "Respuesta B"];
+        } else if (newPreguntas[index].tipo === "verdadero_falso" || newPreguntas[index].tipo === "emparejamiento") {
           updatedPregunta.opciones = ["Opción 1", "Opción 2"];
           updatedPregunta.respuesta_correcta = "Opción 1";
+          updatedPregunta.subpreguntas = undefined;
+          updatedPregunta.opciones_globales = undefined;
         }
       }
 
@@ -353,6 +364,45 @@ export default function EditorCurso() {
       const newOpciones = [...newPreguntas[pIndex].opciones];
       newOpciones.splice(oIndex, 1);
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  // ─── EMPAREJAMIENTO ──────────────────────────────────────────────
+  const addPar = (pIndex: number) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const subs = [...(newPreguntas[pIndex].subpreguntas || [])];
+      const globals = [...(newPreguntas[pIndex].opciones_globales || [])];
+      const newLabel = `Respuesta ${String.fromCharCode(65 + subs.length)}`;
+      subs.push({ texto: `Elemento ${subs.length + 1}`, respuesta_correcta: newLabel });
+      globals.push(newLabel);
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs, opciones_globales: globals };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const removePar = (pIndex: number, sIdx: number) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const subs = [...(newPreguntas[pIndex].subpreguntas || [])];
+      const removedResp = subs[sIdx]?.respuesta_correcta;
+      subs.splice(sIdx, 1);
+      const globals = (newPreguntas[pIndex].opciones_globales || []).filter((g: string) => g !== removedResp);
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs, opciones_globales: globals };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const updatePar = (pIndex: number, sIdx: number, field: 'texto' | 'respuesta_correcta', value: string) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const subs = newPreguntas[pIndex].subpreguntas.map((s: any, i: number) =>
+        i === sIdx ? { ...s, [field]: value } : s
+      );
+      // Recalcular opciones_globales desde las respuestas_correctas actuales
+      const globals = subs.map((s: any) => s.respuesta_correcta);
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs, opciones_globales: globals };
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
   };
@@ -625,6 +675,7 @@ export default function EditorCurso() {
                                 <option value="opcion_multiple">Opción Múltiple (Radio)</option>
                                 <option value="seleccion_multiple">Selección Múltiple (Radio)</option>
                                 <option value="verdadero_falso">Verdadero / Falso</option>
+                                <option value="emparejamiento">Emparejamiento (Arrastrar)</option>
                               </select>
                             </div>
                           </div>
@@ -638,6 +689,61 @@ export default function EditorCurso() {
                             />
                           </div>
 
+                          {/* EMPAREJAMIENTO */}
+                          {p.tipo === "emparejamiento" && (
+                            <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                <label style={{ marginBottom: 0 }}>Pares de Emparejamiento</label>
+                                <button type="button" onClick={() => addPar(index)} className={styles.actionBtn} style={{ padding: "4px 8px", fontSize: "12px" }}>
+                                  <Plus size={12} style={{ marginRight: 4 }}/> Añadir Par
+                                </button>
+                              </div>
+
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>ELEMENTO (izquierda)</span>
+                                <span/>
+                                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>RESPUESTA (derecha)</span>
+                                <span/>
+                              </div>
+
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                {(p.subpreguntas || []).map((sub: any, sIdx: number) => (
+                                  <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto", gap: "8px", alignItems: "center" }}>
+                                    <input
+                                      type="text" required className={styles.input}
+                                      value={sub.texto}
+                                      onChange={(e) => updatePar(index, sIdx, "texto", e.target.value)}
+                                      placeholder={`Elemento ${sIdx + 1}`}
+                                      style={{ margin: 0 }}
+                                    />
+                                    <span style={{ color: "#94a3b8", fontSize: "18px", textAlign: "center" }}>↔</span>
+                                    <input
+                                      type="text" required className={styles.input}
+                                      value={sub.respuesta_correcta}
+                                      onChange={(e) => updatePar(index, sIdx, "respuesta_correcta", e.target.value)}
+                                      placeholder={`Respuesta ${sIdx + 1}`}
+                                      style={{ margin: 0 }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removePar(index, sIdx)}
+                                      className={styles.iconBtnDelete}
+                                      style={{ padding: "8px", margin: 0 }}
+                                      title="Eliminar par"
+                                    >
+                                      <Trash2 size={16}/>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: "8px" }}>
+                                ⚠️ El estudiante verá los elementos en orden y las respuestas mezcladas en un menú desplegable para seleccionar.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* OPCIONES PARA TIPO MULTIPLES */}
                           {(p.tipo === "opcion_multiple" || p.tipo === "seleccion_multiple") && (
                             <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -672,22 +778,24 @@ export default function EditorCurso() {
                             </div>
                           )}
 
-                          <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
-                            <label>Respuesta Correcta {p.tipo === "verdadero_falso" ? "(Verdadero o Falso)" : "(Selecciona la opción correcta)"}</label>
-                            {p.tipo === "verdadero_falso" ? (
-                              <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)}>
-                                <option value="Verdadero">Verdadero</option>
-                                <option value="Falso">Falso</option>
-                              </select>
-                            ) : (
-                              <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)} required>
-                                <option value="">Selecciona la respuesta correcta...</option>
-                                {(p.opciones || []).map((op: string, oIndex: number) => (
-                                  <option key={oIndex} value={op}>{op || `Opción ${oIndex + 1}`}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
+                          {p.tipo !== "emparejamiento" && (
+                            <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
+                              <label>Respuesta Correcta {p.tipo === "verdadero_falso" ? "(Verdadero o Falso)" : "(Selecciona la opción correcta)"}</label>
+                              {p.tipo === "verdadero_falso" ? (
+                                <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)}>
+                                  <option value="Verdadero">Verdadero</option>
+                                  <option value="Falso">Falso</option>
+                                </select>
+                              ) : (
+                                <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)} required>
+                                  <option value="">Selecciona la respuesta correcta...</option>
+                                  {(p.opciones || []).map((op: string, oIndex: number) => (
+                                    <option key={oIndex} value={op}>{op || `Opción ${oIndex + 1}`}</option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          )}
 
                           <div className={styles.formRow} style={{ marginTop: "12px" }}>
                             <div className={styles.inputGroup} style={{ flex: 1 }}>
