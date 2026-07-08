@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const { fileName } = await request.json();
+    const { fileName, bucket = 'videos' } = await request.json();
 
     if (!fileName) {
       return NextResponse.json({ error: 'Falta el nombre del archivo' }, { status: 400 });
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabaseAdmin.storage
-      .from('videos')
+      .from(bucket)
       .createSignedUploadUrl(fileName);
 
     if (error) {
