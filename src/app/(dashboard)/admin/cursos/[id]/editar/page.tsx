@@ -44,6 +44,8 @@ export default function EditorCurso() {
   const [showLeccionModal, setShowLeccionModal] = useState(false);
   const [leccionEdit, setLeccionEdit] = useState<any>(null); // Datos del formulario de lección
 
+  const [isUploading, setIsUploading] = useState(false);
+
   useEffect(() => {
     fetchCursoCompleto();
   }, [cursoId]);
@@ -225,6 +227,37 @@ export default function EditorCurso() {
     } catch (err) {
       console.error(err);
       alert("Error eliminando lección");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `cursos/${cursoId}/${fileName}`;
+
+      const { error } = await supabase.storage.from('videos').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from('videos').getPublicUrl(filePath);
+
+      setLeccionEdit((prev: any) => ({ ...prev, contenido_url: publicUrlData.publicUrl }));
+    } catch (err: any) {
+      console.error(err);
+      alert("Error al subir el video: " + err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -448,6 +481,30 @@ export default function EditorCurso() {
                 {(leccionEdit.tipo === "video" || leccionEdit.tipo === "archivo") && (
                   <div className={styles.inputGroup}>
                     <label>{leccionEdit.tipo === "video" ? "URL del Video (Youtube, Supabase, MP4)" : "URL del Archivo a Descargar"}</label>
+                    
+                    {leccionEdit.tipo === "video" && (
+                      <div style={{ marginBottom: "12px", padding: "12px", border: "1px dashed #cbd5e1", borderRadius: "8px", background: "#fff" }}>
+                        <label style={{ display: "block", marginBottom: "8px", fontSize: "13px", color: "#64748b" }}>
+                          Opción 1: Subir archivo de video (MP4)
+                        </label>
+                        <input 
+                          type="file" 
+                          accept="video/mp4,video/x-m4v,video/*" 
+                          className={styles.input} 
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                          style={{ padding: "8px", fontSize: "14px" }}
+                        />
+                        {isUploading && <span style={{ fontSize: "13px", color: "#3b82f6", display: "block", marginTop: "4px" }}>Subiendo video... por favor espera.</span>}
+                      </div>
+                    )}
+                    
+                    {leccionEdit.tipo === "video" && (
+                      <label style={{ display: "block", marginBottom: "8px", fontSize: "13px", color: "#64748b" }}>
+                        Opción 2: Pegar URL externa
+                      </label>
+                    )}
+
                     <input 
                       type="url" required className={styles.input} 
                       placeholder="https://..."
