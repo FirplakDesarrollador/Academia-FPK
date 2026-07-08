@@ -240,7 +240,7 @@ export default function EditorCurso() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `cursos/${cursoId}/${fileName}`;
-      const bucketName = 'videos'; // Usamos el bucket 'videos' para todos los archivos grandes porque tiene mayor límite de tamaño configurado
+      const bucketName = isVideo ? 'videos' : 'evidencias'; // Usamos el bucket 'evidencias' para archivos ya que no tiene limite de tamano ni restriccion de formato
 
       const response = await fetch('/api/admin/upload-file', {
         method: 'POST',
@@ -313,9 +313,34 @@ export default function EditorCurso() {
     });
   };
 
-  const updateOpciones = (pIndex: number, opcionesTexto: string) => {
-    const arr = opcionesTexto.split("\n").filter(o => o.trim() !== "");
-    updatePregunta(pIndex, "opciones", arr);
+  const updateOptionText = (pIndex: number, oIndex: number, newText: string) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const newOpciones = [...newPreguntas[pIndex].opciones];
+      newOpciones[oIndex] = newText;
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const addOption = (pIndex: number) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const newOpciones = [...(newPreguntas[pIndex].opciones || [])];
+      newOpciones.push(`Opción ${newOpciones.length + 1}`);
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const removeOption = (pIndex: number, oIndex: number) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const newOpciones = [...newPreguntas[pIndex].opciones];
+      newOpciones.splice(oIndex, 1);
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
   };
 
 
@@ -601,29 +626,52 @@ export default function EditorCurso() {
 
                           {(p.tipo === "opcion_multiple" || p.tipo === "seleccion_multiple") && (
                             <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
-                              <label>Opciones (Una por línea)</label>
-                              <textarea 
-                                className={styles.textarea} rows={4} required
-                                value={(p.opciones || []).join("\n")}
-                                onChange={(e) => updateOpciones(index, e.target.value)}
-                                placeholder={`Opción A\nOpción B\nOpción C`}
-                              />
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                <label style={{ marginBottom: 0 }}>Opciones</label>
+                                <button type="button" onClick={() => addOption(index)} className={styles.actionBtn} style={{ padding: "4px 8px", fontSize: "12px" }}>
+                                  <Plus size={12} style={{ marginRight: 4 }}/> Añadir Opción
+                                </button>
+                              </div>
+                              
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                {(p.opciones || []).map((op: string, oIndex: number) => (
+                                  <div key={oIndex} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                    <input 
+                                      type="text" required className={styles.input} 
+                                      value={op}
+                                      onChange={(e) => updateOptionText(index, oIndex, e.target.value)}
+                                      placeholder={`Opción ${oIndex + 1}`}
+                                      style={{ margin: 0 }}
+                                    />
+                                    <button 
+                                      type="button" 
+                                      onClick={() => removeOption(index, oIndex)} 
+                                      className={styles.iconBtnDelete}
+                                      style={{ padding: "8px", margin: 0 }}
+                                      title="Eliminar opción"
+                                    >
+                                      <Trash2 size={16}/>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
 
                           <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
-                            <label>Respuesta Correcta {p.tipo === "verdadero_falso" ? "(Verdadero o Falso)" : "(Debe coincidir EXACTAMENTE con una opción)"}</label>
+                            <label>Respuesta Correcta {p.tipo === "verdadero_falso" ? "(Verdadero o Falso)" : "(Selecciona la opción correcta)"}</label>
                             {p.tipo === "verdadero_falso" ? (
                               <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)}>
                                 <option value="Verdadero">Verdadero</option>
                                 <option value="Falso">Falso</option>
                               </select>
                             ) : (
-                              <input 
-                                type="text" required className={styles.input} 
-                                value={p.respuesta_correcta}
-                                onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)}
-                              />
+                              <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)} required>
+                                <option value="">Selecciona la respuesta correcta...</option>
+                                {(p.opciones || []).map((op: string, oIndex: number) => (
+                                  <option key={oIndex} value={op}>{op || `Opción ${oIndex + 1}`}</option>
+                                ))}
+                              </select>
                             )}
                           </div>
 
