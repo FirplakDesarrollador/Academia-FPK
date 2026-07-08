@@ -313,7 +313,7 @@ export default function EditorCurso() {
   };
 
   const updateOpciones = (pIndex: number, opcionesTexto: string) => {
-    const arr = opcionesTexto.split("\\n").filter(o => o.trim() !== "");
+    const arr = opcionesTexto.split("\n").filter(o => o.trim() !== "");
     updatePregunta(pIndex, "opciones", arr);
   };
 
@@ -609,7 +609,7 @@ export default function EditorCurso() {
                                 className={styles.textarea} rows={4} required
                                 value={(p.opciones || []).join("\n")}
                                 onChange={(e) => updateOpciones(index, e.target.value)}
-                                placeholder="Opción A\nOpción B\nOpción C"
+                                placeholder={`Opción A\nOpción B\nOpción C`}
                               />
                             </div>
                           )}
