@@ -240,7 +240,7 @@ export default function EditorCurso() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `cursos/${cursoId}/${fileName}`;
-      const bucketName = isVideo ? 'videos' : 'publico';
+      const bucketName = 'videos'; // Usamos el bucket 'videos' para todos los archivos grandes porque tiene mayor límite de tamaño configurado
 
       const response = await fetch('/api/admin/upload-file', {
         method: 'POST',
