@@ -215,11 +215,16 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
 
                 {q.tipo === 'emparejamiento' && q.subpreguntas && (
                   <div className={styles.matchingGrid}>
-                    {q.subpreguntas.map((sub, sIdx) => {
+                    {q.subpreguntas.map((sub: any, sIdx: number) => {
                       const selectedVal = answers[q.id]?.[sIdx] || "";
                       return (
                         <div key={sIdx} className={styles.matchingRow}>
-                          <div className={styles.matchingText}>{sub.texto}</div>
+                          <div className={styles.matchingText}>
+                            <span>{sub.texto}</span>
+                            {sub.imagen_url && (
+                              <img src={sub.imagen_url} alt={`Elemento ${sIdx + 1}`} className={styles.optImage} style={{ marginTop: "8px", display: "block" }} />
+                            )}
+                          </div>
                           <select 
                             className={styles.matchingSelect}
                             value={selectedVal}
