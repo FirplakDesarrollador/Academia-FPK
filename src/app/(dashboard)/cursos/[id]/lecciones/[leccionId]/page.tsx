@@ -4,9 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, PlayCircle, FileText, CheckCircle, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, PlayCircle, FileText, CheckCircle, Clock, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
 import { useAuth } from "@/components/Providers/AuthProvider";
 import EvaluationViewer from "@/components/Dashboard/EvaluationViewer";
+import ForoViewer from "@/components/Dashboard/ForoViewer";
 import styles from "./page.module.css";
 
 interface Lesson {
@@ -280,7 +281,18 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
 
           const ytId = contUrl ? getYoutubeId(contUrl) : null;
 
-          if (currentLesson.tipo === 'evaluacion') {
+          if (currentLesson.tipo === 'foro') {
+            return (
+              <div className={styles.videoSection} style={{ padding: "0" }}>
+                <ForoViewer
+                  leccionId={params.leccionId as string}
+                  tema={contTexto || currentLesson.nombre}
+                  onComplete={handleComplete}
+                  completed={completed}
+                />
+              </div>
+            );
+          } else if (currentLesson.tipo === 'evaluacion') {
             return (
               <div className={styles.evalSection}>
                 <EvaluationViewer 
@@ -410,8 +422,12 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
                           <div className={styles.lessonIcon}>
                             {completedLessonIds.has(leccion.id) ? (
                               <CheckCircle size={16} className={styles.checkIcon} />
+                            ) : leccion.tipo === 'video' ? (
+                              <PlayCircle size={16} />
+                            ) : leccion.tipo === 'foro' ? (
+                              <MessageSquare size={16} />
                             ) : (
-                              leccion.tipo === 'video' ? <PlayCircle size={16} /> : <FileText size={16} />
+                              <FileText size={16} />
                             )}
                           </div>
                           <span className={styles.lessonName}>
