@@ -12,6 +12,7 @@ interface Question {
   id: number;
   tipo: string;
   texto: string;
+  imagen_url?: string;
   opciones?: string[];
   opciones_globales?: string[];
   subpreguntas?: {texto: string, respuesta_correcta: string}[];
@@ -212,6 +213,9 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
 
               <div className={styles.questionMain}>
                 <p className={styles.qText} style={{ whiteSpace: 'pre-wrap' }}>{q.texto}</p>
+                {q.imagen_url && (
+                  <img src={q.imagen_url} alt="Imagen de la pregunta" className={styles.qImage} style={{ marginBottom: "24px", maxWidth: "100%", maxHeight: "300px", objectFit: "contain", borderRadius: "8px", display: "block" }} />
+                )}
 
                 {q.tipo === 'emparejamiento' && q.subpreguntas && (
                   <div className={styles.matchingGrid}>
