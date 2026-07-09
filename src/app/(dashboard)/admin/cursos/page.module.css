@@ -159,3 +159,25 @@
   text-align: center;
   color: var(--text-secondary);
 }
+
+.actionBtnDelete {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.actionBtnDelete:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}

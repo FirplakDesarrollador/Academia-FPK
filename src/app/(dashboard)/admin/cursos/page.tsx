@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { PlusCircle, Search, Edit, Eye, BookOpen, Clock } from "lucide-react";
+import { PlusCircle, Search, Edit, Eye, BookOpen, Clock, Trash2 } from "lucide-react";
 import styles from "./page.module.css";
 
 interface Curso {
@@ -40,6 +40,25 @@ export default function GestionCursos() {
       console.error("Error cargando cursos:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteCurso = async (id: string, nombre: string) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el curso "${nombre}"? Esta acción no se puede deshacer y borrará todos los módulos y lecciones asociadas.`)) {
+      try {
+        const { error } = await supabase
+          .schema("academia")
+          .from("cursos")
+          .delete()
+          .eq("id", id);
+          
+        if (error) throw error;
+        
+        fetchCursos();
+      } catch (err: any) {
+        console.error("Error al eliminar curso:", err);
+        alert("Error al eliminar el curso: " + err.message);
+      }
     }
   };
 
@@ -110,6 +129,13 @@ export default function GestionCursos() {
                       >
                         <Edit size={16} /> Contenido
                       </Link>
+                      <button 
+                        onClick={() => handleDeleteCurso(curso.id, curso.nombre)}
+                        className={styles.actionBtnDelete}
+                        title="Eliminar Curso"
+                      >
+                        <Trash2 size={16} /> Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))
