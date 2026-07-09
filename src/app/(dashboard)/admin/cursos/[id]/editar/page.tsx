@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { 
   ArrowLeft, Plus, Edit, Trash2, Video, FileText, CheckSquare, 
-  Save, X, GripVertical, FileBox, ImageIcon, Loader2
+  Save, X, GripVertical, FileBox, ImageIcon, Loader2, MessageSquare
 } from "lucide-react";
 import styles from "./page.module.css";
 import Link from "next/link";
@@ -649,6 +649,7 @@ export default function EditorCurso() {
                           {lec.tipo === "texto" && <FileText size={16} color="#f59e0b" />}
                           {lec.tipo === "evaluacion" && <CheckSquare size={16} color="#10b981" />}
                           {lec.tipo === "archivo" && <FileBox size={16} color="#8b5cf6" />}
+                          {lec.tipo === "foro" && <MessageSquare size={16} color="#f97316" />}
                         </div>
                         <span className={styles.leccionNombre}>{lec.orden}. {lec.nombre}</span>
                         <span className={styles.leccionDuracion}>{lec.duracion_estimada} min</span>
@@ -742,6 +743,7 @@ export default function EditorCurso() {
                     <option value="texto">📄 Texto / Artículo</option>
                     <option value="archivo">📦 Archivo Descargable</option>
                     <option value="evaluacion">✅ Evaluación (Examen)</option>
+                    <option value="foro">💬 Foro de Discusión</option>
                   </select>
                 </div>
               </div>
@@ -817,6 +819,26 @@ export default function EditorCurso() {
                       value={leccionEdit.contenido_texto}
                       onChange={(e) => setLeccionEdit({...leccionEdit, contenido_texto: e.target.value})}
                     />
+                  </div>
+                )}
+
+                {/* FORO */}
+                {leccionEdit.tipo === "foro" && (
+                  <div>
+                    <div className={styles.inputGroup}>
+                      <label>Tema / Pregunta del Foro</label>
+                      <input
+                        type="text"
+                        required
+                        className={styles.input}
+                        placeholder="¿Qué aprendiste hoy? ¿Tienes alguna duda?"
+                        value={leccionEdit.contenido_texto}
+                        onChange={(e) => setLeccionEdit({...leccionEdit, contenido_texto: e.target.value})}
+                      />
+                    </div>
+                    <p style={{ fontSize: "13px", color: "#64748b", marginTop: "8px" }}>
+                      💬 Los estudiantes podrán leer este tema y dejar sus comentarios o respuestas en el foro.
+                    </p>
                   </div>
                 )}
 
