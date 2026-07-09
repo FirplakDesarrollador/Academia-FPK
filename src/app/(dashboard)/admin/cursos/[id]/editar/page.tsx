@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { 
   ArrowLeft, Plus, Edit, Trash2, Video, FileText, CheckSquare, 
-  Save, X, GripVertical, FileBox
+  Save, X, GripVertical, FileBox, ImageIcon, Loader2
 } from "lucide-react";
 import styles from "./page.module.css";
 import Link from "next/link";
@@ -45,6 +45,7 @@ export default function EditorCurso() {
   const [leccionEdit, setLeccionEdit] = useState<any>(null); // Datos del formulario de lección
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingOptionKey, setUploadingOptionKey] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCursoCompleto();
@@ -288,7 +289,10 @@ export default function EditorCurso() {
           id: Date.now(),
           tipo: "opcion_multiple",
           texto: "",
-          opciones: ["Opción 1", "Opción 2"],
+          opciones: [
+            { texto: "Opción 1", imagen_url: "" },
+            { texto: "Opción 2", imagen_url: "" }
+          ],
           respuesta_correcta: "Opción 1",
           retroalimentacion_correcta: "¡Muy bien!",
           retroalimentacion_incorrecta: "Respuesta incorrecta."
@@ -318,7 +322,10 @@ export default function EditorCurso() {
           ];
           updatedPregunta.opciones_globales = ["Respuesta A", "Respuesta B"];
         } else if (newPreguntas[index].tipo === "verdadero_falso" || newPreguntas[index].tipo === "emparejamiento") {
-          updatedPregunta.opciones = ["Opción 1", "Opción 2"];
+          updatedPregunta.opciones = [
+            { texto: "Opción 1", imagen_url: "" },
+            { texto: "Opción 2", imagen_url: "" }
+          ];
           updatedPregunta.respuesta_correcta = "Opción 1";
           updatedPregunta.subpreguntas = undefined;
           updatedPregunta.opciones_globales = undefined;
@@ -338,11 +345,33 @@ export default function EditorCurso() {
     });
   };
 
+  // Helper: obtener texto de una opción (soporta string legacy y objeto nuevo)
+  const getOpcionTexto = (op: any): string => {
+    if (typeof op === "string") return op;
+    return op?.texto || "";
+  };
+
   const updateOptionText = (pIndex: number, oIndex: number, newText: string) => {
     setLeccionEdit((prev: any) => {
       const newPreguntas = [...prev.evaluacion_preguntas];
       const newOpciones = [...newPreguntas[pIndex].opciones];
-      newOpciones[oIndex] = newText;
+      const current = newOpciones[oIndex];
+      newOpciones[oIndex] = typeof current === "string"
+        ? { texto: newText, imagen_url: "" }
+        : { ...current, texto: newText };
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const updateOptionImage = (pIndex: number, oIndex: number, imageUrl: string) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const newOpciones = [...newPreguntas[pIndex].opciones];
+      const current = newOpciones[oIndex];
+      newOpciones[oIndex] = typeof current === "string"
+        ? { texto: current, imagen_url: imageUrl }
+        : { ...current, imagen_url: imageUrl };
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
@@ -352,7 +381,7 @@ export default function EditorCurso() {
     setLeccionEdit((prev: any) => {
       const newPreguntas = [...prev.evaluacion_preguntas];
       const newOpciones = [...(newPreguntas[pIndex].opciones || [])];
-      newOpciones.push(`Opción ${newOpciones.length + 1}`);
+      newOpciones.push({ texto: `Opción ${newOpciones.length + 1}`, imagen_url: "" });
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
@@ -366,6 +395,73 @@ export default function EditorCurso() {
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], opciones: newOpciones };
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
+  };
+
+  const handleOptionImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    pIndex: number,
+    oIndex: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const key = `${pIndex}-${oIndex}`;
+    setUploadingOptionKey(key);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cursos/${cursoId}/opciones/${Math.random().toString(36).substring(2, 10)}_${Date.now()}.${fileExt}`;
+      const response = await fetch('/api/admin/upload-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, bucket: 'evidencias' })
+      });
+      if (!response.ok) throw new Error((await response.json()).error || 'Error al obtener permiso');
+      const { data: signedData } = await response.json();
+      if (!signedData?.token) throw new Error('No se pudo obtener el token');
+      const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, file);
+      if (error) throw error;
+      const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+      updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+    } catch (err: any) {
+      alert("Error al subir imagen: " + err.message);
+    } finally {
+      setUploadingOptionKey(null);
+      // Reset input so same file can be re-selected
+      e.target.value = "";
+    }
+  };
+
+  const handleOptionImagePaste = async (pIndex: number, oIndex: number) => {
+    try {
+      const clipItems = await navigator.clipboard.read();
+      for (const item of clipItems) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const ext = imageType.split('/')[1] || 'png';
+          const fileName = `cursos/${cursoId}/opciones/paste_${Date.now()}.${ext}`;
+          const key = `${pIndex}-${oIndex}`;
+          setUploadingOptionKey(key);
+          const response = await fetch('/api/admin/upload-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName, bucket: 'evidencias' })
+          });
+          if (!response.ok) throw new Error((await response.json()).error || 'Error al obtener permiso');
+          const { data: signedData } = await response.json();
+          if (!signedData?.token) throw new Error('No se pudo obtener el token');
+          const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, blob);
+          if (error) throw error;
+          const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+          updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+          setUploadingOptionKey(null);
+          return;
+        }
+      }
+      alert('No hay imagen en el portapapeles. Copia una imagen primero.');
+    } catch (err: any) {
+      setUploadingOptionKey(null);
+      alert('Error al pegar imagen: ' + (err.message || 'Permisos de portapapeles denegados'));
+    }
   };
 
   // ─── EMPAREJAMIENTO ──────────────────────────────────────────────
@@ -753,27 +849,81 @@ export default function EditorCurso() {
                                 </button>
                               </div>
                               
-                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                {(p.opciones || []).map((op: string, oIndex: number) => (
-                                  <div key={oIndex} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                    <input 
-                                      type="text" required className={styles.input} 
-                                      value={op}
-                                      onChange={(e) => updateOptionText(index, oIndex, e.target.value)}
-                                      placeholder={`Opción ${oIndex + 1}`}
-                                      style={{ margin: 0 }}
-                                    />
+                              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                {(p.opciones || []).map((op: any, oIndex: number) => {
+                                  const opKey = `${index}-${oIndex}`;
+                                  const opTexto = getOpcionTexto(op);
+                                  const opImagen = typeof op === "object" ? op.imagen_url : "";
+                                  const isUploadingThis = uploadingOptionKey === opKey;
+                                  return (
+                                  <div key={oIndex} className={styles.opcionRow}>
+                                    <div className={styles.opcionInputs}>
+                                      <input 
+                                        type="text" required className={styles.input} 
+                                        value={opTexto}
+                                        onChange={(e) => updateOptionText(index, oIndex, e.target.value)}
+                                        placeholder={`Texto opción ${oIndex + 1}`}
+                                        style={{ margin: 0 }}
+                                      />
+                                      <div className={styles.opcionImageActions}>
+                                        <label
+                                          className={styles.imgUploadBtn}
+                                          title="Subir imagen para esta opción"
+                                          style={{ opacity: isUploadingThis ? 0.6 : 1, cursor: isUploadingThis ? 'not-allowed' : 'pointer' }}
+                                        >
+                                          {isUploadingThis
+                                            ? <Loader2 size={15} className={styles.spinIcon} />
+                                            : <ImageIcon size={15} />}
+                                          <span>Subir</span>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            disabled={isUploadingThis}
+                                            onChange={(e) => handleOptionImageUpload(e, index, oIndex)}
+                                          />
+                                        </label>
+                                        <button
+                                          type="button"
+                                          className={styles.imgUploadBtn}
+                                          title="Pegar imagen del portapapeles (Ctrl+V)"
+                                          disabled={isUploadingThis}
+                                          onClick={() => handleOptionImagePaste(index, oIndex)}
+                                        >
+                                          {isUploadingThis
+                                            ? <Loader2 size={15} className={styles.spinIcon} />
+                                            : <span style={{ fontSize: 14 }}>📋</span>}
+                                          <span>Pegar</span>
+                                        </button>
+                                        {opImagen && (
+                                          <button
+                                            type="button"
+                                            className={styles.imgRemoveBtn}
+                                            title="Quitar imagen"
+                                            onClick={() => updateOptionImage(index, oIndex, "")}
+                                          >
+                                            <X size={13}/> Quitar img
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {opImagen && (
+                                      <div className={styles.opcionImagePreview}>
+                                        <img src={opImagen} alt={`Imagen opción ${oIndex + 1}`} />
+                                      </div>
+                                    )}
                                     <button 
                                       type="button" 
                                       onClick={() => removeOption(index, oIndex)} 
                                       className={styles.iconBtnDelete}
-                                      style={{ padding: "8px", margin: 0 }}
+                                      style={{ padding: "8px", margin: 0, flexShrink: 0 }}
                                       title="Eliminar opción"
                                     >
                                       <Trash2 size={16}/>
                                     </button>
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -789,9 +939,12 @@ export default function EditorCurso() {
                               ) : (
                                 <select className={styles.select} value={p.respuesta_correcta} onChange={(e) => updatePregunta(index, "respuesta_correcta", e.target.value)} required>
                                   <option value="">Selecciona la respuesta correcta...</option>
-                                  {(p.opciones || []).map((op: string, oIndex: number) => (
-                                    <option key={oIndex} value={op}>{op || `Opción ${oIndex + 1}`}</option>
-                                  ))}
+                                  {(p.opciones || []).map((op: any, oIndex: number) => {
+                                    const txt = getOpcionTexto(op);
+                                    return (
+                                      <option key={oIndex} value={txt}>{txt || `Opción ${oIndex + 1}`}</option>
+                                    );
+                                  })}
                                 </select>
                               )}
                             </div>

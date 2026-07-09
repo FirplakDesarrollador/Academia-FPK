@@ -23,6 +23,11 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
   const router = useRouter();
   const { profile } = useAuth();
   
+  const getOpcionTexto = (op: any): string => {
+    if (typeof op === "string") return op;
+    return op?.texto || "";
+  };
+  
   const [evalData, setEvalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -239,33 +244,40 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
 
                 {(q.tipo === 'opcion_multiple' || q.tipo === 'seleccion_multiple' || q.tipo === 'verdadero_falso') && q.opciones && (
                   <div className={styles.radioGroup}>
-                    {q.opciones.map(opt => {
+                    {q.opciones.map((opt: any, oIndex: number) => {
+                      const optText = getOpcionTexto(opt);
+                      const optImage = typeof opt === "object" ? opt.imagen_url : "";
                       const isMulti = Array.isArray(q.respuesta_correcta);
-                      const isSelected = isMulti ? (answers[q.id] || []).includes(opt) : answers[q.id] === opt;
-                      const isCorrectOpt = isMulti ? q.respuesta_correcta?.includes(opt) : opt === q.respuesta_correcta;
+                      const isSelected = isMulti ? (answers[q.id] || []).includes(optText) : answers[q.id] === optText;
+                      const isCorrectOpt = isMulti ? q.respuesta_correcta?.includes(optText) : optText === q.respuesta_correcta;
 
                       return (
-                        <label key={opt} className={styles.radioLabel}>
+                        <label key={oIndex} className={styles.radioLabel}>
                           <input 
                             type={isMulti ? "checkbox" : "radio"} 
                             name={`q_${q.id}`} 
-                            value={opt}
+                            value={optText}
                             checked={isSelected}
                             onChange={(e) => {
                               if (isMulti) {
                                 const currentAnswers = answers[q.id] || [];
                                 if (e.target.checked) {
-                                  handleSelectAnswer(q.id, null, [...currentAnswers, opt]);
+                                  handleSelectAnswer(q.id, null, [...currentAnswers, optText]);
                                 } else {
-                                  handleSelectAnswer(q.id, null, currentAnswers.filter((a: string) => a !== opt));
+                                  handleSelectAnswer(q.id, null, currentAnswers.filter((a: string) => a !== optText));
                                 }
                               } else {
-                                handleSelectAnswer(q.id, null, opt);
+                                handleSelectAnswer(q.id, null, optText);
                               }
                             }}
                             disabled={submitted}
                           />
-                          <span>{opt}</span>
+                          <div className={styles.optContent}>
+                            <span>{optText}</span>
+                            {optImage && (
+                              <img src={optImage} alt={`Opción ${oIndex + 1}`} className={styles.optImage} />
+                            )}
+                          </div>
                           {submitted && isSelected && (
                             <span className={styles.feedbackIcon}>
                               {isCorrectOpt ? <CheckCircle color="#22c55e" size={18}/> : <AlertTriangle color="#ef4444" size={18}/>}
