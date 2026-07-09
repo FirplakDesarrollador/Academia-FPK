@@ -400,11 +400,12 @@ export default function EditorCurso() {
   const handleOptionImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     pIndex: number,
-    oIndex: number
+    oIndex: number,
+    isPar: boolean = false
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const key = `${pIndex}-${oIndex}`;
+    const key = isPar ? `par-${pIndex}-${oIndex}` : `opt-${pIndex}-${oIndex}`;
     setUploadingOptionKey(key);
     try {
       const fileExt = file.name.split('.').pop();
@@ -420,7 +421,12 @@ export default function EditorCurso() {
       const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, file);
       if (error) throw error;
       const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
-      updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+      
+      if (isPar) {
+        updateParImage(pIndex, oIndex, publicUrlData.publicUrl);
+      } else {
+        updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+      }
     } catch (err: any) {
       alert("Error al subir imagen: " + err.message);
     } finally {
@@ -430,7 +436,7 @@ export default function EditorCurso() {
     }
   };
 
-  const handleOptionImagePaste = async (pIndex: number, oIndex: number) => {
+  const handleOptionImagePaste = async (pIndex: number, oIndex: number, isPar: boolean = false) => {
     try {
       const clipItems = await navigator.clipboard.read();
       for (const item of clipItems) {
@@ -439,7 +445,7 @@ export default function EditorCurso() {
           const blob = await item.getType(imageType);
           const ext = imageType.split('/')[1] || 'png';
           const fileName = `cursos/${cursoId}/opciones/paste_${Date.now()}.${ext}`;
-          const key = `${pIndex}-${oIndex}`;
+          const key = isPar ? `par-${pIndex}-${oIndex}` : `opt-${pIndex}-${oIndex}`;
           setUploadingOptionKey(key);
           const response = await fetch('/api/admin/upload-file', {
             method: 'POST',
@@ -452,7 +458,12 @@ export default function EditorCurso() {
           const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, blob);
           if (error) throw error;
           const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
-          updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+          
+          if (isPar) {
+            updateParImage(pIndex, oIndex, publicUrlData.publicUrl);
+          } else {
+            updateOptionImage(pIndex, oIndex, publicUrlData.publicUrl);
+          }
           setUploadingOptionKey(null);
           return;
         }
@@ -471,7 +482,7 @@ export default function EditorCurso() {
       const subs = [...(newPreguntas[pIndex].subpreguntas || [])];
       const globals = [...(newPreguntas[pIndex].opciones_globales || [])];
       const newLabel = `Respuesta ${String.fromCharCode(65 + subs.length)}`;
-      subs.push({ texto: `Elemento ${subs.length + 1}`, respuesta_correcta: newLabel });
+      subs.push({ texto: `Elemento ${subs.length + 1}`, imagen_url: "", respuesta_correcta: newLabel });
       globals.push(newLabel);
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs, opciones_globales: globals };
       return { ...prev, evaluacion_preguntas: newPreguntas };
@@ -499,6 +510,17 @@ export default function EditorCurso() {
       // Recalcular opciones_globales desde las respuestas_correctas actuales
       const globals = subs.map((s: any) => s.respuesta_correcta);
       newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs, opciones_globales: globals };
+      return { ...prev, evaluacion_preguntas: newPreguntas };
+    });
+  };
+
+  const updateParImage = (pIndex: number, sIdx: number, imageUrl: string) => {
+    setLeccionEdit((prev: any) => {
+      const newPreguntas = [...prev.evaluacion_preguntas];
+      const subs = newPreguntas[pIndex].subpreguntas.map((s: any, i: number) =>
+        i === sIdx ? { ...s, imagen_url: imageUrl } : s
+      );
+      newPreguntas[pIndex] = { ...newPreguntas[pIndex], subpreguntas: subs };
       return { ...prev, evaluacion_preguntas: newPreguntas };
     });
   };
@@ -802,35 +824,70 @@ export default function EditorCurso() {
                                 <span/>
                               </div>
 
-                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                                {(p.subpreguntas || []).map((sub: any, sIdx: number) => (
-                                  <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto", gap: "8px", alignItems: "center" }}>
-                                    <input
-                                      type="text" required className={styles.input}
-                                      value={sub.texto}
-                                      onChange={(e) => updatePar(index, sIdx, "texto", e.target.value)}
-                                      placeholder={`Elemento ${sIdx + 1}`}
-                                      style={{ margin: 0 }}
-                                    />
-                                    <span style={{ color: "#94a3b8", fontSize: "18px", textAlign: "center" }}>↔</span>
-                                    <input
-                                      type="text" required className={styles.input}
-                                      value={sub.respuesta_correcta}
-                                      onChange={(e) => updatePar(index, sIdx, "respuesta_correcta", e.target.value)}
-                                      placeholder={`Respuesta ${sIdx + 1}`}
-                                      style={{ margin: 0 }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => removePar(index, sIdx)}
-                                      className={styles.iconBtnDelete}
-                                      style={{ padding: "8px", margin: 0 }}
-                                      title="Eliminar par"
-                                    >
-                                      <Trash2 size={16}/>
-                                    </button>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                {(p.subpreguntas || []).map((sub: any, sIdx: number) => {
+                                  const isUploadingThis = uploadingOptionKey === `par-${index}-${sIdx}`;
+                                  return (
+                                  <div key={sIdx} className={styles.opcionRow}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto", gap: "8px", alignItems: "flex-start" }}>
+                                      <div className={styles.opcionInputs}>
+                                        <input
+                                          type="text" required className={styles.input}
+                                          value={sub.texto}
+                                          onChange={(e) => updatePar(index, sIdx, "texto", e.target.value)}
+                                          placeholder={`Elemento ${sIdx + 1}`}
+                                          style={{ margin: 0 }}
+                                        />
+                                        <div className={styles.opcionImageActions}>
+                                          <label className={styles.imgUploadBtn} style={{ opacity: isUploadingThis ? 0.6 : 1, cursor: isUploadingThis ? 'not-allowed' : 'pointer' }}>
+                                            {isUploadingThis ? <Loader2 size={15} className={styles.spinIcon} /> : <ImageIcon size={15} />}
+                                            <span>Subir</span>
+                                            <input
+                                              type="file" accept="image/*" style={{ display: 'none' }} disabled={isUploadingThis}
+                                              onChange={(e) => handleOptionImageUpload(e, index, sIdx, true)}
+                                            />
+                                          </label>
+                                          <button type="button" className={styles.imgUploadBtn} disabled={isUploadingThis} onClick={() => handleOptionImagePaste(index, sIdx, true)}>
+                                            {isUploadingThis ? <Loader2 size={15} className={styles.spinIcon} /> : <span style={{ fontSize: 14 }}>📋</span>}
+                                            <span>Pegar</span>
+                                          </button>
+                                          {sub.imagen_url && (
+                                            <button type="button" className={styles.imgRemoveBtn} onClick={() => updateParImage(index, sIdx, "")}>
+                                              <X size={13}/> Quitar
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <span style={{ color: "#94a3b8", fontSize: "18px", textAlign: "center", paddingTop: "8px" }}>↔</span>
+                                      
+                                      <input
+                                        type="text" required className={styles.input}
+                                        value={sub.respuesta_correcta}
+                                        onChange={(e) => updatePar(index, sIdx, "respuesta_correcta", e.target.value)}
+                                        placeholder={`Respuesta ${sIdx + 1}`}
+                                        style={{ margin: 0 }}
+                                      />
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={() => removePar(index, sIdx)}
+                                        className={styles.iconBtnDelete}
+                                        style={{ padding: "8px", margin: 0, marginTop: "2px" }}
+                                        title="Eliminar par"
+                                      >
+                                        <Trash2 size={16}/>
+                                      </button>
+                                    </div>
+                                    
+                                    {sub.imagen_url && (
+                                      <div className={styles.opcionImagePreview} style={{ marginTop: "8px" }}>
+                                        <img src={sub.imagen_url} alt={`Imagen elemento ${sIdx + 1}`} />
+                                      </div>
+                                    )}
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
 
                               <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: "8px" }}>
@@ -851,7 +908,7 @@ export default function EditorCurso() {
                               
                               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                 {(p.opciones || []).map((op: any, oIndex: number) => {
-                                  const opKey = `${index}-${oIndex}`;
+                                  const opKey = `opt-${index}-${oIndex}`;
                                   const opTexto = getOpcionTexto(op);
                                   const opImagen = typeof op === "object" ? op.imagen_url : "";
                                   const isUploadingThis = uploadingOptionKey === opKey;
