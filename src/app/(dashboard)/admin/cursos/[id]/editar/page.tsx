@@ -475,6 +475,73 @@ export default function EditorCurso() {
     }
   };
 
+  const handlePreguntaImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    pIndex: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const key = `pregunta-${pIndex}`;
+    setUploadingOptionKey(key);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `cursos/${cursoId}/preguntas/${Math.random().toString(36).substring(2, 10)}_${Date.now()}.${fileExt}`;
+      const response = await fetch('/api/admin/upload-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, bucket: 'evidencias' })
+      });
+      if (!response.ok) throw new Error((await response.json()).error || 'Error al obtener permiso');
+      const { data: signedData } = await response.json();
+      if (!signedData?.token) throw new Error('No se pudo obtener el token');
+      const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, file);
+      if (error) throw error;
+      const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+      
+      updatePregunta(pIndex, "imagen_url", publicUrlData.publicUrl);
+    } catch (err: any) {
+      alert("Error al subir imagen: " + err.message);
+    } finally {
+      setUploadingOptionKey(null);
+      e.target.value = "";
+    }
+  };
+
+  const handlePreguntaImagePaste = async (pIndex: number) => {
+    try {
+      const clipItems = await navigator.clipboard.read();
+      for (const item of clipItems) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const ext = imageType.split('/')[1] || 'png';
+          const fileName = `cursos/${cursoId}/preguntas/paste_${Date.now()}.${ext}`;
+          const key = `pregunta-${pIndex}`;
+          setUploadingOptionKey(key);
+          const response = await fetch('/api/admin/upload-file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName, bucket: 'evidencias' })
+          });
+          if (!response.ok) throw new Error((await response.json()).error || 'Error al obtener permiso');
+          const { data: signedData } = await response.json();
+          if (!signedData?.token) throw new Error('No se pudo obtener el token');
+          const { error } = await supabase.storage.from('evidencias').uploadToSignedUrl(fileName, signedData.token, blob);
+          if (error) throw error;
+          const { data: publicUrlData } = supabase.storage.from('evidencias').getPublicUrl(fileName);
+          
+          updatePregunta(pIndex, "imagen_url", publicUrlData.publicUrl);
+          setUploadingOptionKey(null);
+          return;
+        }
+      }
+      alert('No hay imagen en el portapapeles. Copia una imagen primero.');
+    } catch (err: any) {
+      setUploadingOptionKey(null);
+      alert('Error al pegar imagen: ' + (err.message || 'Permisos de portapapeles denegados'));
+    }
+  };
+
   // ─── EMPAREJAMIENTO ──────────────────────────────────────────────
   const addPar = (pIndex: number) => {
     setLeccionEdit((prev: any) => {
@@ -800,11 +867,38 @@ export default function EditorCurso() {
 
                           <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
                             <label>Enunciado de la pregunta</label>
-                            <input 
-                              type="text" required className={styles.input} 
-                              value={p.texto}
-                              onChange={(e) => updatePregunta(index, "texto", e.target.value)}
-                            />
+                            <div className={styles.opcionInputs}>
+                              <input 
+                                type="text" required className={styles.input} 
+                                value={p.texto}
+                                onChange={(e) => updatePregunta(index, "texto", e.target.value)}
+                                style={{ margin: 0 }}
+                              />
+                              <div className={styles.opcionImageActions}>
+                                <label className={styles.imgUploadBtn} style={{ opacity: uploadingOptionKey === `pregunta-${index}` ? 0.6 : 1, cursor: uploadingOptionKey === `pregunta-${index}` ? 'not-allowed' : 'pointer' }}>
+                                  {uploadingOptionKey === `pregunta-${index}` ? <Loader2 size={15} className={styles.spinIcon} /> : <ImageIcon size={15} />}
+                                  <span>Subir</span>
+                                  <input
+                                    type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingOptionKey === `pregunta-${index}`}
+                                    onChange={(e) => handlePreguntaImageUpload(e, index)}
+                                  />
+                                </label>
+                                <button type="button" className={styles.imgUploadBtn} disabled={uploadingOptionKey === `pregunta-${index}`} onClick={() => handlePreguntaImagePaste(index)}>
+                                  {uploadingOptionKey === `pregunta-${index}` ? <Loader2 size={15} className={styles.spinIcon} /> : <span style={{ fontSize: 14 }}>📋</span>}
+                                  <span>Pegar</span>
+                                </button>
+                                {p.imagen_url && (
+                                  <button type="button" className={styles.imgRemoveBtn} onClick={() => updatePregunta(index, "imagen_url", "")}>
+                                    <X size={13}/> Quitar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {p.imagen_url && (
+                              <div className={styles.opcionImagePreview} style={{ marginTop: "8px" }}>
+                                <img src={p.imagen_url} alt="Imagen de la pregunta" />
+                              </div>
+                            )}
                           </div>
 
                           {/* EMPAREJAMIENTO */}
