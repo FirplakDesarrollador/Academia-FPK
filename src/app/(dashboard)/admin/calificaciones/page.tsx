@@ -17,10 +17,11 @@ interface Leccion {
 }
 
 interface Usuario {
-  usuario_id: string; // ID en auth.users
+  usuario_id: string; // ID en auth.users, o clave sintética "sr_..." si no está relacionado
   nombres: string;
   apellidos: string;
   cedula: string;
+  origen?: "sin_relacionar";
 }
 
 interface Calificacion {
@@ -30,6 +31,7 @@ interface Calificacion {
   puntuacion: number;
   puntuacion_maxima: number;
   retroalimentacion?: string;
+  origen?: "sin_relacionar";
 }
 
 export default function ReporteCalificador() {
@@ -156,7 +158,7 @@ export default function ReporteCalificador() {
           
           califData?.forEach(c => {
             lookup[`${c.usuario_id}_${c.leccion_id}`] = c;
-            
+
             // Determinar la puntuación máxima para cada lección
             const cMax = Number(c.puntuacion_maxima) || 0;
             if (cMax > (lessonMaxScores[c.leccion_id] || 0)) {
@@ -164,6 +166,43 @@ export default function ReporteCalificador() {
             }
           });
         }
+
+        // C2. Cargar calificaciones de personas que no se pudieron relacionar con ningún usuario/empleado
+        const { data: sinRelData, error: sinRelError } = await supabase
+          .schema("academia")
+          .from("calificaciones_sin_relacionar")
+          .select("id, leccion_id, nombre, apellidos, correo, cedula, puntuacion, puntuacion_maxima")
+          .eq("curso_id", selectedCurso);
+
+        if (sinRelError) console.error("Error loading calificaciones_sin_relacionar:", sinRelError);
+
+        const sinRelUsersMap = new Map<string, Usuario>();
+        sinRelData?.forEach(r => {
+          const key = `sr_${(r.nombre + "_" + r.apellidos + "_" + (r.correo || "")).toLowerCase().replace(/\s+/g, "_")}`;
+          if (!sinRelUsersMap.has(key)) {
+            sinRelUsersMap.set(key, {
+              usuario_id: key,
+              nombres: r.nombre,
+              apellidos: r.apellidos,
+              cedula: r.cedula || "",
+              origen: "sin_relacionar",
+            });
+          }
+          lookup[`${key}_${r.leccion_id}`] = {
+            id: r.id,
+            usuario_id: key,
+            leccion_id: r.leccion_id,
+            puntuacion: r.puntuacion,
+            puntuacion_maxima: r.puntuacion_maxima,
+            origen: "sin_relacionar",
+          };
+          const cMax = Number(r.puntuacion_maxima) || 0;
+          if (cMax > (lessonMaxScores[r.leccion_id] || 0)) {
+            lessonMaxScores[r.leccion_id] = cMax;
+          }
+        });
+
+        const sinRelUsers = Array.from(sinRelUsersMap.values());
 
         // D. Cargar visualizaciones de lecciones (Visto/No Visto)
         const { data: insData, error: insError } = await supabase
@@ -234,7 +273,11 @@ export default function ReporteCalificador() {
             }
         }
 
-        setUsuarios(mappedUsers);
+        const allUsers = [...mappedUsers, ...sinRelUsers].sort((a, b) =>
+          `${a.apellidos} ${a.nombres}`.localeCompare(`${b.apellidos} ${b.nombres}`)
+        );
+
+        setUsuarios(allUsers);
         setLecciones(sortedActs);
         setCalificaciones(lookup);
         setMaxScores(lessonMaxScores);
@@ -259,6 +302,39 @@ export default function ReporteCalificador() {
     const existing = calificaciones[key];
 
     if (existing && existing.puntuacion === score && existing.retroalimentacion === retroalimentacion) return; // Nada cambió
+
+    // Personas sin cuenta relacionada: se guardan en una tabla separada, sin retroalimentación
+    if (usuarioId.startsWith("sr_") || existing?.origen === "sin_relacionar") {
+      if (existing && existing.id) {
+        await supabase.schema("academia").from("calificaciones_sin_relacionar")
+          .update({ puntuacion: score, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+
+        setCalificaciones(prev => ({...prev, [key]: { ...existing, puntuacion: score }}));
+      } else {
+        const persona = usuarios.find(u => u.usuario_id === usuarioId);
+        const { data, error } = await supabase.schema("academia").from("calificaciones_sin_relacionar")
+          .insert({
+            curso_id: selectedCurso,
+            leccion_id: leccionId,
+            nombre: persona?.nombres || "",
+            apellidos: persona?.apellidos || "",
+            cedula: persona?.cedula || null,
+            puntuacion: score,
+            puntuacion_maxima: 100
+          }).select("id").single();
+
+        if (error) {
+          console.error("Error inserting grade:", error);
+          alert("Hubo un error al guardar la calificación. Por favor intenta de nuevo.");
+        }
+
+        if (data) {
+          setCalificaciones(prev => ({...prev, [key]: { id: data.id, usuario_id: usuarioId, leccion_id: leccionId, puntuacion: score, puntuacion_maxima: 100, origen: "sin_relacionar" }}));
+        }
+      }
+      return;
+    }
 
     // Guardar en la DB
     if (existing && existing.id) {
@@ -363,7 +439,16 @@ export default function ReporteCalificador() {
                   <tr key={u.usuario_id}>
                     <td className={styles.userCol}>
                       {u.nombres} {u.apellidos}
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{u.cedula}</div>
+                      {u.cedula && <div style={{ fontSize: '11px', color: '#64748b' }}>{u.cedula}</div>}
+                      {u.origen === "sin_relacionar" && (
+                        <div style={{
+                          display: 'inline-block', marginTop: 4,
+                          padding: '1px 8px', borderRadius: 10, fontSize: '10px', fontWeight: 600,
+                          background: '#fef3c7', color: '#92400e'
+                        }}>
+                          Sin relacionar
+                        </div>
+                      )}
                     </td>
                     
                     {lecciones.map(l => {
