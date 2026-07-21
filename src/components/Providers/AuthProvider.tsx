@@ -72,44 +72,66 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const { data, error } = await supabase
           .schema("academia")
           .from("usuarios")
-          .select("id, empleado_id, rol_id")
+          .select("id, empleado_id, rol_id, nombre_completo")
           .eq("id", currentSession.user.id)
           .maybeSingle();
 
         if (error) {
           console.log("No se pudo cargar un perfil asigando al usuario en academia.usuarios:", error.message || error);
         }
-        
+
         let mappedProfile: UserProfile | null = null;
-        
-        if (data && data.empleado_id) {
+
+        if (data) {
+          let nombres = "";
+          let apellidos = "";
+          let correo = "";
+          let cedula = data.empleado_id ? String(data.empleado_id) : "";
+
+          if (data.empleado_id) {
             // Fetch empleado manually just to be safe from cross-schema postgrest errors
             const { data: empData } = await supabase
-             .from("empleados")
-             .select("nombreCompleto, correo_electronico, id")
-             .eq("id", data.empleado_id)
-             .maybeSingle();
-             
-             if (empData) {
-               // nombreCompleto viene como "Nombre1 Nombre2 Apellido1 Apellido2"
-               // Dividimos: primeras 2 partes = nombres, resto = apellidos
-               const partes = (empData.nombreCompleto || "").trim().split(/\s+/);
-               const nombres = partes.slice(0, 2).join(" ");
-               const apellidos = partes.slice(2).join(" ");
-               
-               mappedProfile = {
-                 id: data.id,
-                 nombres: nombres || empData.nombreCompleto || "",
-                 apellidos: apellidos || "",
-                 cedula: String(empData.id),
-                 correo: empData.correo_electronico || "",
-                 rol_id: String(data.rol_id),
-                 empleado_id: data.empleado_id,
-                 activo: true,
-               };
-             }
+              .from("empleados")
+              .select("nombreCompleto, correo_electronico, id")
+              .eq("id", data.empleado_id)
+              .maybeSingle();
+
+            if (empData) {
+              // nombreCompleto viene como "Nombre1 Nombre2 Apellido1 Apellido2"
+              // Dividimos: primeras 2 partes = nombres, resto = apellidos
+              const partes = (empData.nombreCompleto || "").trim().split(/\s+/);
+              nombres = partes.slice(0, 2).join(" ") || empData.nombreCompleto || "";
+              apellidos = partes.slice(2).join(" ");
+              correo = empData.correo_electronico || "";
+              cedula = String(empData.id);
+            }
+          }
+
+          // Si el cruce con empleados no trajo nada (registro eliminado, RLS, etc.),
+          // usamos el nombre guardado directamente en academia.usuarios al crear la cuenta.
+          if (!nombres && data.nombre_completo) {
+            const partes = data.nombre_completo.trim().split(/\s+/);
+            nombres = partes.slice(0, 2).join(" ") || data.nombre_completo.trim();
+            apellidos = partes.slice(2).join(" ");
+          }
+
+          // Mientras exista empleado_id, armamos el perfil igual (aunque no se haya
+          // podido resolver el nombre) para que secciones como "Mis Cursos" —que
+          // dependen de profile.empleado_id— sigan funcionando.
+          if (nombres || data.empleado_id) {
+            mappedProfile = {
+              id: data.id,
+              nombres: nombres || "Usuario",
+              apellidos,
+              cedula,
+              correo,
+              rol_id: String(data.rol_id),
+              empleado_id: data.empleado_id,
+              activo: true,
+            };
+          }
         }
-        
+
         if (mounted) {
           setSession(currentSession);
           // Permite que data sea null si no tiene registro de perfil
