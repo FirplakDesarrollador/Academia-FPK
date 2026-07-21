@@ -50,6 +50,14 @@ export async function POST(request: Request) {
 
     if (roleError) throw new Error(`Ocurrió un error al buscar el rol: ${roleError.message}`);
 
+    // 2b. Guardamos el nombre completo directamente en academia.usuarios para que el
+    // nombre en pantalla no dependa de que el cruce con empleados funcione en cada login.
+    const { data: empData } = await supabaseAdmin
+      .from('empleados')
+      .select('nombreCompleto')
+      .eq('id', empleadoId)
+      .maybeSingle();
+
     // 3. Vincularlo en la tabla de academia.usuarios
     // NOTA: 'id' es el UUID de Supabase Auth; 'empleado_id' enlaza al registro de RRHH.
     const { error: insertError } = await supabaseAdmin
@@ -60,6 +68,7 @@ export async function POST(request: Request) {
         empleado_id: empleadoId,
         rol_id: roleData.id,
         tipo: 'empleado',
+        nombre_completo: empData?.nombreCompleto?.trim() || null,
       });
 
     if (insertError) throw new Error(`Error vinculando cuenta a la academia: ${insertError.message}`);
