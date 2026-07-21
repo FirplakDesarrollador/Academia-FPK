@@ -127,6 +127,27 @@ async function main() {
   const existingUsuarios = await fetchAllPages('usuarios', 'id, empleado_id', 'academia');
   console.log('Usuarios existentes (academia.usuarios):', existingUsuarios.length);
 
+  const idToEmpleadoId = new Map();
+  existingUsuarios.forEach(u => { if (u.empleado_id) idToEmpleadoId.set(u.id, u.empleado_id); });
+
+  // Some empleados share the exact same email in the empleados table itself (e.g. two people
+  // both have "comercial@firplak.com" registered as their personal email). Preload all auth
+  // users once so we can detect when an email is already claimed by a DIFFERENT empleado's
+  // account before trying to create/link one — avoids a primary-key collision on academia.usuarios.
+  const authByEmail = new Map();
+  {
+    let page = 1;
+    while (true) {
+      const { data: authPage, error: authListErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      if (authListErr) throw new Error('listUsers: ' + authListErr.message);
+      if (!authPage || !authPage.users || authPage.users.length === 0) break;
+      authPage.users.forEach(u => { if (u.email) authByEmail.set(u.email.toLowerCase(), u.id); });
+      if (authPage.users.length < 1000) break;
+      page++;
+    }
+  }
+  console.log('Cuentas de auth precargadas:', authByEmail.size);
+
   const { data: roleData, error: roleErr } = await supabaseAdmin
     .schema('academia').from('roles').select('id').eq('nombre', 'OPERARIO').single();
   if (roleErr) throw new Error('No se pudo obtener rol OPERARIO: ' + roleErr.message);
@@ -174,7 +195,6 @@ async function main() {
       const nameMatches = byName.get(fullName);
       if (nameMatches && nameMatches.length === 1) emp = nameMatches[0];
     }
-
     if (emp) {
       matched.push({ emp, nombre, apellido, correo, cedulaFile, notas });
     } else {
@@ -220,6 +240,17 @@ async function main() {
     if (!userId) {
       let finalEmail = (m.emp.correo_personal || m.emp.correo_electronico || '').trim();
       if (!EMAIL_RE.test(finalEmail)) finalEmail = `${m.emp.id}@academia.local`;
+
+      // If this email is already claimed by a DIFFERENT empleado's account (two empleados
+      // sharing the same generic/departmental email in the empleados table), fall back to a
+      // synthetic per-empleado email instead of colliding with the other person's account.
+      const claimedByAuthId = authByEmail.get(finalEmail.toLowerCase());
+      if (claimedByAuthId) {
+        const claimedByEmpleadoId = idToEmpleadoId.get(claimedByAuthId);
+        if (claimedByEmpleadoId && claimedByEmpleadoId !== m.emp.id) {
+          finalEmail = `${m.emp.id}@academia.local`;
+        }
+      }
 
       try {
         const { data: authData, error: authError } = await withRetry(
