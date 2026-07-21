@@ -12,16 +12,66 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const CURSO_ID = '283c7f14-4c73-47df-a0be-ad8e19ab8c3a'; // Herramientas Colaborativas Firplak
+const CURSO_ID = '86eb9037-31d0-4914-bb03-56cabdf51229'; // INDUCCIÓN VIRTUAL
 const LECCIONES = [
-  { id: '80e922db-35a1-43e5-8292-6d2c8fbab05e', max: 10, col: 7 },  // Herramientas colaborativas
-  { id: 'fe3761db-ff07-4315-a7f6-aed6c1305c0e', max: 100, col: 8 }, // Test de políticas de uso de planner
+  { id: 'f08f6085-17ff-4459-9c5d-df508d2dd9af', max: 10, col: 6 },  // Evaluación Inducción
+  { id: '87622cc7-fc15-4a74-9bba-9af426fa954d', max: 10, col: 7 },  // Evaluación Inducción SST
+  { id: '396c66ad-5741-4721-89bd-3a2dd18b952f', max: 5, col: 8 },   // Evaluacion Sagrilaft y PTEE
 ];
+// const CURSO_ID = '283c7f14-4c73-47df-a0be-ad8e19ab8c3a'; // Herramientas Colaborativas Firplak
+// const LECCIONES = [
+//   { id: '80e922db-35a1-43e5-8292-6d2c8fbab05e', max: 10, col: 7 },  // Herramientas colaborativas
+//   { id: 'fe3761db-ff07-4315-a7f6-aed6c1305c0e', max: 100, col: 8 }, // Test de políticas de uso de planner
+// ];
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
 function normalize(s) {
   return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+function similarity(a, b) {
+  const maxLen = Math.max(a.length, b.length, 1);
+  return 1 - levenshtein(a, b) / maxLen;
+}
+function bestSim(token, otherTokens) {
+  return otherTokens.length ? Math.max(...otherTokens.map(t => similarity(token, t))) : 0;
+}
+
+// Rejects an email match when the file's name shares nothing plausible with the matched
+// empleado's real name (using fuzzy token similarity, tolerant of common spelling variants
+// like Jhoan/Johan or Yennifer/Jennifer). Catches shared/departmental mailboxes (e.g.
+// talentos@firplak.com, comercial@firplak.com) registered under one employee's personal email
+// but used by someone else entirely when signing up for the course — which would otherwise
+// silently misattribute grades to the wrong person.
+function isPlausibleNameMatch(nombre, apellido, empNombreCompleto) {
+  const empTokens = normalize(empNombreCompleto).split(' ').filter(t => t.length >= 2);
+  if (empTokens.length === 0) return false;
+  const nombreTokens = normalize(nombre).split(' ').filter(t => t.length >= 3);
+  const apellidoTokens = normalize(apellido).split(' ').filter(t => t.length >= 3);
+  const nombreOk = nombreTokens.length === 0 || nombreTokens.some(t => bestSim(t, empTokens) >= 0.65);
+  const apellidoOk = apellidoTokens.length === 0 || apellidoTokens.some(t => bestSim(t, empTokens) >= 0.65);
+  if (nombreOk && apellidoOk) return true;
+
+  // Fallback for names stored without spaces between words (e.g. "OquendoGonzález" in
+  // empleados vs "Oquendo González" in the file): compare the whole names as continuous
+  // strings so a missing space doesn't break tokenization for an otherwise-identical name.
+  const fileWhole = normalize(`${nombre}${apellido}`).replace(/\s+/g, '');
+  const empWhole = normalize(empNombreCompleto).replace(/\s+/g, '');
+  return similarity(fileWhole, empWhole) >= 0.8;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -113,6 +163,11 @@ async function main() {
 
     const emailNorm = correo.toLowerCase();
     let emp = emailNorm ? byEmail.get(emailNorm) : null;
+    let rejectedSharedEmail = false;
+    if (emp && !isPlausibleNameMatch(nombre, apellido, emp.nombreCompleto)) {
+      rejectedSharedEmail = true;
+      emp = null;
+    }
     if (!emp && cedulaFile) emp = byCedula.get(cedulaFile);
     if (!emp) {
       const fullName = normalize(`${nombre} ${apellido}`);
@@ -123,13 +178,17 @@ async function main() {
     if (emp) {
       matched.push({ emp, nombre, apellido, correo, cedulaFile, notas });
     } else {
-      unmatched.push({ nombre, apellido, correo, cedulaFile, notas });
+      unmatched.push({ nombre, apellido, correo, cedulaFile, notas, rejectedSharedEmail });
     }
   });
 
   const matchedWithGrades = matched.filter(m => m.notas.some(n => n !== null));
   const unmatchedWithGrades = unmatched.filter(m => m.notas.some(n => n !== null));
   const needsNewAccount = matchedWithGrades.filter(m => !usuarioByEmpleadoId.has(m.emp.id));
+  const rejectedSharedEmailWithGrades = unmatchedWithGrades.filter(m => m.rejectedSharedEmail);
+  if (rejectedSharedEmailWithGrades.length) {
+    console.log('Rechazados por correo compartido/departamental (con nota, irán a sin_relacionar):', JSON.stringify(rejectedSharedEmailWithGrades.map(m => ({ nombre: m.nombre, apellido: m.apellido, correo: m.correo })), null, 2));
+  }
 
   console.log('--- RESUMEN ---');
   console.log('Total filas archivo:', data.length);
