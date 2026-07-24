@@ -114,6 +114,7 @@ export default function MisCalificaciones() {
                   Total del Curso: {curso.total} / {curso.maxTotal} ({coursePercentage}%)
                 </div>
               </div>
+              <div className={styles.tableScroll}>
               <table className={styles.gradeTable}>
                 <thead>
                   <tr>
@@ -159,6 +160,7 @@ export default function MisCalificaciones() {
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
           )
         })

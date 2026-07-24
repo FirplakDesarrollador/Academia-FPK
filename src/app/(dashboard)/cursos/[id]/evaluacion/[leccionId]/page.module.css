@@ -225,6 +225,14 @@
 }
 
 @media (max-width: 768px) {
+  .quizLayout {
+    padding: 20px 14px;
+  }
+
+  .quizHeader h1 {
+    font-size: 1.4rem;
+  }
+
   .questionBlock {
     flex-direction: column;
   }
@@ -239,11 +247,29 @@
     border-top-right-radius: 8px;
   }
   .qNumber, .qStatus, .qPoints { margin: 0; }
+
+  .questionMain {
+    padding: 16px;
+  }
+
   .matchingRow {
     flex-direction: column;
     align-items: flex-start;
   }
   .matchingSelect {
     width: 100%;
+  }
+
+  .resultsArea {
+    padding: 20px;
+  }
+
+  .submitArea {
+    justify-content: stretch;
+  }
+
+  .finishBtn {
+    width: 100%;
+    text-align: center;
   }
 }

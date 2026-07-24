@@ -23,12 +23,19 @@
 
 .controls {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 24px;
   background: white;
   padding: 16px;
   border-radius: var(--radius);
   border: 1px solid #e2e8f0;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .searchInput {
@@ -49,11 +56,13 @@
   background: white;
   border-radius: var(--radius);
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -149,6 +158,8 @@
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.15s ease-out;
+  padding: 20px;
+  overflow-y: auto;
 }
 
 .modal {
@@ -203,4 +214,39 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 4px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchWrapper {
+    width: 100%;
+  }
+
+  .modal {
+    padding: 20px;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelBtn,
+  .createBtn {
+    width: 100%;
+    justify-content: center;
+  }
 }

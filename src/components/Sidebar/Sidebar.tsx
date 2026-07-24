@@ -27,41 +27,48 @@ const menuItems = [
   { icon: ClipboardList, label: "Reporte Calificador", href: "/admin/calificaciones", requireAdmin: true },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile } = useAuth();
-  
+
   // Solo rol_id 1 = ADMINISTRADOR
   const isAdmin = profile?.rol_id === "1";
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.logo}>
-        <div style={{ background: "var(--primary)", padding: "8px", borderRadius: "10px" }}>
-          <BookOpen color="white" size={24} />
+    <>
+      {isOpen && <div className={styles.overlay} onClick={onClose} />}
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`}>
+        <div className={styles.logo}>
+          <div style={{ background: "var(--primary)", padding: "8px", borderRadius: "10px" }}>
+            <BookOpen color="white" size={24} />
+          </div>
+          <span className={styles.logoText}>Academia</span>
         </div>
-        <span className={styles.logoText}>Academia</span>
-      </div>
 
-      <nav className={styles.nav}>
-        {menuItems.map((item) => {
-          if (item.requireAdmin && !isAdmin) return null;
-          
-          const isActive = pathname === item.href;
-          return (
-            <Link 
-              key={item.href} 
-              href={item.href}
-              className={`${styles.navItem} ${isActive ? styles.active : ""}`}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className={styles.nav}>
+          {menuItems.map((item) => {
+            if (item.requireAdmin && !isAdmin) return null;
 
-
-    </aside>
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                onClick={onClose}
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }

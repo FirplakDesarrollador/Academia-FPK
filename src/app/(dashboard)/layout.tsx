@@ -1,30 +1,23 @@
+"use client";
+
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar/Sidebar";
 import Navbar from "@/components/Navbar/Navbar";
+import styles from "./layout.module.css";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
-      <div style={{ 
-        flex: 1, 
-        marginLeft: "var(--sidebar-width)", 
-        display: "flex", 
-        flexDirection: "column",
-        minWidth: 0
-      }}>
-        <Navbar />
-        <main style={{ 
-          marginTop: "var(--navbar-height)", 
-          padding: "2rem",
-          flex: 1,
-          overflowY: "auto"
-        }}>
-          {children}
-        </main>
+    <div className={styles.shell}>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className={styles.content}>
+        <Navbar onMenuClick={() => setSidebarOpen((v) => !v)} />
+        <main className={styles.main}>{children}</main>
       </div>
     </div>
   );

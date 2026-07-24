@@ -163,4 +163,18 @@
   .imageSection {
     display: none;
   }
+
+  .formSection {
+    padding: 24px;
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .formSection {
+    padding: 20px 16px;
+  }
 }

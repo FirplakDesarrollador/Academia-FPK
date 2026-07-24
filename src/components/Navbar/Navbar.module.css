@@ -11,7 +11,19 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 2rem;
+  gap: 1rem;
   z-index: 90;
+}
+
+.menuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--primary);
+  flex-shrink: 0;
 }
 
 .searchWrapper {
@@ -21,7 +33,9 @@
   padding: 0.5rem 1rem;
   border-radius: calc(var(--radius) / 1.5);
   width: 400px;
+  max-width: 100%;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .searchWrapper input {
@@ -29,6 +43,7 @@
   border: none;
   outline: none;
   width: 100%;
+  min-width: 0;
   font-size: 0.9rem;
   color: var(--foreground);
 }
@@ -37,6 +52,40 @@
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    left: 0;
+    padding: 0 1.25rem;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .navbar {
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+
+  .searchWrapper {
+    display: none;
+  }
+
+  .actions {
+    gap: 0.75rem;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .userInfo {
+    display: none;
+  }
 }
 
 .iconButton {

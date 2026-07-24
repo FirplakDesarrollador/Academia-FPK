@@ -245,8 +245,8 @@ export default function GestionUsuarios() {
         </div>
       </header>
 
-      <div className={styles.controls} style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-        <div style={{ position: "relative", flex: 1 }}>
+      <div className={styles.controls}>
+        <div className={styles.searchWrapper}>
           <Search
             size={20}
             color="#64748b"

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Bell, Mail, ChevronDown, LogOut } from "lucide-react";
+import { Search, Bell, Mail, ChevronDown, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/components/Providers/AuthProvider";
 import styles from "./Navbar.module.css";
 
-export default function Navbar() {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { profile, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -32,6 +36,10 @@ export default function Navbar() {
 
   return (
     <header className={styles.navbar}>
+      <button className={styles.menuButton} onClick={onMenuClick} aria-label="Abrir menú">
+        <Menu size={22} />
+      </button>
+
       <div className={styles.searchWrapper}>
         <Search size={18} opacity={0.5} />
         <input type="text" placeholder="Buscar cursos, lecciones, recursos..." />
@@ -48,8 +56,8 @@ export default function Navbar() {
         </button>
 
         <div className={styles.profileContainer}>
-          <div 
-            className={styles.userProfile} 
+          <div
+            className={styles.userProfile}
             onClick={() => setMenuOpen(!menuOpen)}
           >
             <div className={styles.avatar}>{getInitials()}</div>
