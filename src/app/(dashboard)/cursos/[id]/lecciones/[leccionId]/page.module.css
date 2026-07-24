@@ -217,11 +217,42 @@
     flex-direction: column;
     height: auto;
   }
-  
+
   .sidebar {
     width: 100%;
     border-left: none;
     border-top: 1px solid #e2e8f0;
+  }
+}
+
+@media (max-width: 640px) {
+  .videoInfo {
+    padding: 20px;
+  }
+
+  .videoTitle {
+    font-size: 19px;
+  }
+
+  .evalSection {
+    padding: 24px 12px;
+  }
+
+  .documentContent {
+    padding: 20px;
+  }
+
+  .imageContainer {
+    padding: 12px;
+  }
+
+  .sidebarHeader {
+    padding: 16px;
+  }
+
+  .completeBtn {
+    width: 100%;
+    justify-content: center;
   }
 }
 

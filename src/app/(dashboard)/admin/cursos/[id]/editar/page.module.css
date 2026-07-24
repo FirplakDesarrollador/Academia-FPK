@@ -436,3 +436,53 @@
 .spinIcon {
   animation: spin 0.8s linear infinite;
 }
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 4px;
+    padding-bottom: 40px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .moduloHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .leccionItem {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .leccionNombre {
+    overflow-wrap: anywhere;
+  }
+
+  .modal {
+    padding: 18px;
+  }
+
+  .formRow {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .modalActions {
+    flex-direction: column-reverse;
+  }
+
+  .saveBtn,
+  .cancelBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}

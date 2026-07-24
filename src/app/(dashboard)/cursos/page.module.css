@@ -293,3 +293,50 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@media (max-width: 640px) {
+  .statsBar {
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    padding: 1rem;
+  }
+
+  .statDivider {
+    display: none;
+  }
+
+  .searchBox {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .filterTabs {
+    margin-left: 0;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .listItem {
+    flex-wrap: wrap;
+  }
+
+  .listThumb {
+    width: 64px;
+    height: 48px;
+  }
+
+  .listProgress {
+    align-items: flex-start;
+    min-width: 0;
+    flex: 1 1 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .loadingState,
+  .emptyState {
+    padding: 2.5rem 1rem;
+  }
+}

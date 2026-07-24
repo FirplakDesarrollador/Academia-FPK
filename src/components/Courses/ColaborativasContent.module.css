@@ -528,7 +528,7 @@
     position: relative;
     height: auto;
   }
-  
+
   .sidebar {
     width: 100%;
     border-left: none;
@@ -537,5 +537,78 @@
 
   .viewerBody {
     min-height: 400px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
+  }
+
+  .banner {
+    padding: 28px 24px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+
+  .bannerContent {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .bannerText h1 {
+    font-size: 1.8rem;
+  }
+
+  .bannerIllustration {
+    font-size: 3.5rem;
+    align-self: center;
+  }
+
+  .progressContainer {
+    margin-bottom: 32px;
+  }
+
+  .outlineSectionHeader {
+    padding-right: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .outlineSectionTitle h2 {
+    font-size: 1.2rem;
+  }
+
+  .outlineResourceItem {
+    padding: 12px 10px;
+  }
+
+  .outlineResourceLeft {
+    gap: 12px;
+  }
+
+  .outlineResourceTitle {
+    font-size: 0.9rem;
+  }
+
+  .viewerHeader {
+    padding: 12px 16px 16px 16px;
+  }
+
+  .viewerTitle {
+    font-size: 1.1rem;
+  }
+
+  .viewerFooter {
+    padding: 12px 16px;
+  }
+
+  .sidebarHeader {
+    padding: 16px;
+  }
+
+  .downloadPlaceholder {
+    padding: 24px;
   }
 }

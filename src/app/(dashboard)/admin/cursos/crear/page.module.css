@@ -191,3 +191,28 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 4px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .formRow {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .saveBtn,
+  .cancelBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}

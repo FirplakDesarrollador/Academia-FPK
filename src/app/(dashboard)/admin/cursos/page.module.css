@@ -79,11 +79,13 @@
   background: white;
   border-radius: var(--radius);
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -180,4 +182,26 @@
   background: #ef4444;
   border-color: #ef4444;
   color: white;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 4px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .controls {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .createBtn {
+    width: 100%;
+    justify-content: center;
+  }
 }

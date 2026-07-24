@@ -258,6 +258,7 @@
   color: #334155;
   outline: none;
   min-width: 300px;
+  max-width: 100%;
   box-shadow: 0 0 0 3px rgba(11, 88, 162, 0.1);
   font-family: inherit;
   margin: -5px 0;
@@ -364,11 +365,32 @@
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
   .lessonRight {
     gap: 10px;
   }
-  
+
   .moduleName {
     font-size: 1.1rem;
+  }
+
+  .sectionTitleMain h2 {
+    font-size: 1.15rem;
+  }
+
+  .inlineInput {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .lessonRow {
+    padding: 8px 4px;
+  }
+
+  .lessonName {
+    font-size: 0.9rem;
   }
 }

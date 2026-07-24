@@ -53,8 +53,15 @@
   font-size: 14px;
 }
 
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .gradeTable {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
 }
 
@@ -137,4 +144,22 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .title {
+    font-size: 22px;
+  }
+
+  .courseHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .gradeTable th,
+  .gradeTable td {
+    padding: 12px 16px;
+  }
 }
