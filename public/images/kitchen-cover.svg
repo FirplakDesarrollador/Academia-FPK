@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#9a3412"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+
+  <!-- Counter -->
+  <rect x="0" y="330" width="800" height="120" fill="#1f2937" opacity="0.25"/>
+
+  <!-- Stovetop -->
+  <g transform="translate(400,255)">
+    <rect x="-150" y="-70" width="300" height="140" rx="16" fill="#ffffff" fill-opacity="0.95"/>
+    <circle cx="-75" cy="-25" r="34" fill="none" stroke="#334155" stroke-width="6" opacity="0.75"/>
+    <circle cx="-75" cy="-25" r="14" fill="#334155" opacity="0.55"/>
+    <circle cx="75" cy="-25" r="34" fill="none" stroke="#334155" stroke-width="6" opacity="0.75"/>
+    <circle cx="75" cy="-25" r="14" fill="#334155" opacity="0.55"/>
+    <circle cx="-75" cy="55" r="26" fill="none" stroke="#334155" stroke-width="5" opacity="0.6"/>
+    <circle cx="75" cy="55" r="26" fill="none" stroke="#334155" stroke-width="5" opacity="0.6"/>
+  </g>
+
+  <!-- Pot with steam -->
+  <g transform="translate(400,175)">
+    <path d="M -45 40 h 90 l -8 45 a 6 6 0 0 1 -6 5 h -62 a 6 6 0 0 1 -6 -5 z" fill="#e2e8f0"/>
+    <rect x="-52" y="30" width="104" height="16" rx="6" fill="#cbd5e1"/>
+    <rect x="-70" y="33" width="16" height="8" rx="4" fill="#cbd5e1"/>
+    <rect x="54" y="33" width="16" height="8" rx="4" fill="#cbd5e1"/>
+    <path d="M -18 20 c -6 -14 8 -18 4 -32" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 0 20 c -6 -18 10 -22 4 -40" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+    <path d="M 18 20 c -6 -14 8 -18 4 -32" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+  </g>
+</svg>
