@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <rect width="800" height="450" fill="url(#glow)"/>
+
+  <!-- Tub -->
+  <g transform="translate(400,270)">
+    <path d="M -190 -20 a 190 55 0 0 0 380 0 v 30 a 40 40 0 0 1 -40 40 h -300 a 40 40 0 0 1 -40 -40 z"
+          fill="#ffffff" fill-opacity="0.95"/>
+    <ellipse cx="0" cy="-20" rx="190" ry="55" fill="#e0f2fe"/>
+    <ellipse cx="0" cy="-20" rx="150" ry="38" fill="#7dd3fc" opacity="0.85"/>
+    <!-- water ripples -->
+    <path d="M -110 -20 q 20 -14 40 0 t 40 0 t 40 0 t 40 0" fill="none" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+    <path d="M -95 -5 q 18 -12 36 0 t 36 0 t 36 0" fill="none" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+  </g>
+
+  <!-- Bubbles -->
+  <g fill="#ffffff" opacity="0.85">
+    <circle cx="230" cy="150" r="10"/>
+    <circle cx="265" cy="115" r="7"/>
+    <circle cx="255" cy="185" r="5"/>
+    <circle cx="560" cy="140" r="12"/>
+    <circle cx="595" cy="105" r="6"/>
+    <circle cx="600" cy="175" r="8"/>
+    <circle cx="400" cy="90" r="7"/>
+  </g>
+</svg>
