@@ -321,7 +321,16 @@ export default function EditorCurso() {
             { texto: "Elemento 2", respuesta_correcta: "Respuesta B" },
           ];
           updatedPregunta.opciones_globales = ["Respuesta A", "Respuesta B"];
-        } else if (newPreguntas[index].tipo === "verdadero_falso" || newPreguntas[index].tipo === "emparejamiento") {
+        } else if (value === "respuesta_abierta") {
+          updatedPregunta.opciones = undefined;
+          updatedPregunta.respuesta_correcta = undefined;
+          updatedPregunta.subpreguntas = undefined;
+          updatedPregunta.opciones_globales = undefined;
+        } else if (
+          newPreguntas[index].tipo === "verdadero_falso" ||
+          newPreguntas[index].tipo === "emparejamiento" ||
+          newPreguntas[index].tipo === "respuesta_abierta"
+        ) {
           updatedPregunta.opciones = [
             { texto: "Opción 1", imagen_url: "" },
             { texto: "Opción 2", imagen_url: "" }
@@ -883,6 +892,7 @@ export default function EditorCurso() {
                                 <option value="seleccion_multiple">Selección Múltiple (Radio)</option>
                                 <option value="verdadero_falso">Verdadero / Falso</option>
                                 <option value="emparejamiento">Emparejamiento (Arrastrar)</option>
+                                <option value="respuesta_abierta">Respuesta Abierta (Texto libre)</option>
                               </select>
                             </div>
                           </div>
@@ -1101,7 +1111,13 @@ export default function EditorCurso() {
                             </div>
                           )}
 
-                          {p.tipo !== "emparejamiento" && (
+                          {p.tipo === "respuesta_abierta" && (
+                            <p style={{ fontSize: "12px", color: "#94a3b8", marginTop: "12px" }}>
+                              ⚠️ Las preguntas de respuesta abierta no se califican automáticamente. El estudiante escribirá una respuesta en texto libre y podrá copiarla.
+                            </p>
+                          )}
+
+                          {p.tipo !== "emparejamiento" && p.tipo !== "respuesta_abierta" && (
                             <div className={styles.inputGroup} style={{ marginTop: "12px" }}>
                               <label>Respuesta Correcta {p.tipo === "verdadero_falso" ? "(Verdadero o Falso)" : "(Selecciona la opción correcta)"}</label>
                               {p.tipo === "verdadero_falso" ? (
