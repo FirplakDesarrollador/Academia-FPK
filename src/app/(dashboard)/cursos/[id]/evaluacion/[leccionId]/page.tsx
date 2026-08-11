@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/Providers/AuthProvider";
-import { ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertTriangle, Copy, Check } from "lucide-react";
 import styles from "./page.module.css";
 import Link from "next/link";
 
@@ -35,6 +35,18 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [inscriptionId, setInscriptionId] = useState<string | null>(null);
+  const [copiedQId, setCopiedQId] = useState<number | null>(null);
+
+  const handleCopyAnswer = async (qId: number, text: string) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedQId(qId);
+      setTimeout(() => setCopiedQId((prev) => (prev === qId ? null : prev)), 1500);
+    } catch (err) {
+      console.error("No se pudo copiar la respuesta", err);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -117,6 +129,10 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
   const calculateScore = () => {
     let totalScore = 0;
     evalData.preguntas.forEach((q: Question) => {
+      if (q.tipo === 'respuesta_abierta') {
+        // No se califica automáticamente: no suma ni resta puntos.
+        return;
+      }
       if (q.tipo === 'emparejamiento') {
         let correctSub = 0;
         const subCount = q.subpreguntas?.length || 1;
@@ -183,7 +199,7 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
   if (loading) return <div className={styles.loading}>Cargando evaluación...</div>;
   if (!evalData) return <div className={styles.loading}>No se encontró la evaluación.</div>;
 
-  const totalQuestions = evalData.preguntas.length;
+  const totalQuestions = evalData.preguntas.filter((q: Question) => q.tipo !== 'respuesta_abierta').length;
 
   return (
     <div className={styles.quizLayout}>
@@ -208,7 +224,9 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
                 <div className={styles.qStatus}>
                   {isAnswered ? "Respuesta guardada" : "Sin responder aún"}
                 </div>
-                <div className={styles.qPoints}>Se puntúa como 1.00</div>
+                <div className={styles.qPoints}>
+                  {q.tipo === 'respuesta_abierta' ? "Respuesta abierta (no autocalificada)" : "Se puntúa como 1.00"}
+                </div>
               </div>
 
               <div className={styles.questionMain}>
@@ -298,6 +316,35 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
                         </label>
                       );
                     })}
+                  </div>
+                )}
+
+                {q.tipo === 'respuesta_abierta' && (
+                  <div className={styles.openAnswerBlock}>
+                    <textarea
+                      className={styles.openAnswerTextarea}
+                      value={answers[q.id] || ""}
+                      onChange={(e) => handleSelectAnswer(q.id, null, e.target.value)}
+                      disabled={submitted}
+                      placeholder="Escribe tu respuesta aquí..."
+                      rows={6}
+                    />
+                    <button
+                      type="button"
+                      className={styles.copyAnswerBtn}
+                      onClick={() => handleCopyAnswer(q.id, answers[q.id] || "")}
+                      disabled={!answers[q.id]}
+                    >
+                      {copiedQId === q.id ? (
+                        <>
+                          <Check size={14} /> Copiada
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} /> Copiar mi respuesta
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
