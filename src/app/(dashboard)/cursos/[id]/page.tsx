@@ -514,8 +514,7 @@ export default function CourseDetail() {
           <div className={styles.banner}>
              <div className={styles.bannerContent}>
                 <div className={styles.bannerIllustration}>
-                   {/* This would be the image from the reference */}
-                   <img src="/banner_induccion.png" alt="Inducción Virtual" className={styles.bannerImg} />
+                   <img src={course.imagen_url || "/images/virtual_induction.png"} alt={course.nombre} className={styles.bannerImg} />
                 </div>
              </div>
           </div>

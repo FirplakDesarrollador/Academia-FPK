@@ -44,7 +44,7 @@ export default function Dashboard() {
           .eq("activo", true);
 
         if (error) throw error;
-        const allCursos = cursosData || [];
+        const isAdmin = profile.rol_id === "1";
 
         // 2. Inscripciones del usuario
         const { data: inscripciones } = await supabase
@@ -52,6 +52,11 @@ export default function Dashboard() {
           .from("inscripciones")
           .select("id, curso_id, metadata")
           .eq("empleado_id", profile.empleado_id);
+
+        // Los administradores ven todos los cursos; los demás solo los que tienen asignados.
+        const allCursos = isAdmin
+          ? (cursosData || [])
+          : (cursosData || []).filter(c => (inscripciones || []).some(i => i.curso_id === c.id));
 
         if (!inscripciones || inscripciones.length === 0) {
           setCourses(allCursos.map(c => ({ ...c, progreso: 0 })));
