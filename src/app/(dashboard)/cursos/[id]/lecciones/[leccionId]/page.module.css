@@ -246,6 +246,27 @@
     padding: 12px;
   }
 
+  .documentSection {
+    min-height: 60vh;
+  }
+
+  .lightboxOverlay {
+    padding: 16px;
+  }
+
+  .lightboxClose {
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .expandHint,
+  .expandBtn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
   .sidebarHeader {
     padding: 16px;
   }
@@ -256,6 +277,17 @@
   }
 }
 
+.documentSection {
+  background: #f1f5f9;
+  width: 100%;
+  min-height: 75vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
 .imageContainer {
   width: 100%;
   height: 100%;
@@ -264,6 +296,8 @@
   align-items: center;
   background: #f1f5f9;
   padding: 20px;
+  position: relative;
+  cursor: zoom-in;
 }
 
 .contentImage {
@@ -274,10 +308,55 @@
   border-radius: 4px;
 }
 
+.expandHint {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.pdfContainer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
 .pdfViewer {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.expandBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  color: var(--primary);
+  border: 1px solid #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s;
+}
+
+.expandBtn:hover {
+  background: #f8fafc;
 }
 
 .documentContent {
@@ -285,4 +364,67 @@
   background: white;
   min-height: 200px;
   line-height: 1.6;
+}
+
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: lightboxFadeIn 0.15s ease-out;
+}
+
+.lightboxContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightboxImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.lightboxPdf {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 6px;
+  background: white;
+}
+
+.lightboxClose {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lightboxClose:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

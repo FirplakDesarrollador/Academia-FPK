@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, PlayCircle, FileText, CheckCircle, Clock, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { ArrowLeft, PlayCircle, FileText, CheckCircle, Clock, ChevronDown, ChevronUp, MessageSquare, Maximize2, X } from "lucide-react";
 import { useAuth } from "@/components/Providers/AuthProvider";
 import EvaluationViewer from "@/components/Dashboard/EvaluationViewer";
 import ForoViewer from "@/components/Dashboard/ForoViewer";
@@ -44,6 +45,16 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
   const [inscriptionId, setInscriptionId] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [lightbox, setLightbox] = useState<{ type: "image" | "pdf"; url: string } | null>(null);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [lightbox]);
 
 
   useEffect(() => {
@@ -340,13 +351,35 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
           } else {
             // Archivo o Texto
             return (
-              <div className={styles.videoSection}>
+              <div className={styles.documentSection}>
                 {contUrl && contUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                  <div className={styles.imageContainer}>
+                  <div
+                    className={styles.imageContainer}
+                    onClick={() => setLightbox({ type: "image", url: contUrl })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setLightbox({ type: "image", url: contUrl });
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    title="Clic para ampliar"
+                  >
                     <img src={contUrl} alt={currentLesson.nombre} className={styles.contentImage} />
+                    <div className={styles.expandHint}>
+                      <Maximize2 size={16} /> Ampliar
+                    </div>
                   </div>
                 ) : contUrl && contUrl.endsWith('.pdf') ? (
-                  <iframe src={contUrl} className={styles.pdfViewer} title={currentLesson.nombre} />
+                  <div className={styles.pdfContainer}>
+                    <iframe src={contUrl} className={styles.pdfViewer} title={currentLesson.nombre} />
+                    <button
+                      type="button"
+                      className={styles.expandBtn}
+                      onClick={() => setLightbox({ type: "pdf", url: contUrl })}
+                      title="Ampliar documento"
+                    >
+                      <Maximize2 size={16} /> Ampliar
+                    </button>
+                  </div>
                 ) : contUrl ? (
                   <div className={styles.documentContent} style={{ textAlign: "center", padding: "40px" }}>
                     <a href={contUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "var(--primary)", color: "white", padding: "10px 20px", borderRadius: "8px", textDecoration: "none" }}>
@@ -443,6 +476,27 @@ export default function LessonViewer({ params: paramsPromise }: { params: Promis
           ))}
         </div>
       </aside>
+
+      {lightbox && typeof document !== "undefined" && createPortal(
+        <div className={styles.lightboxOverlay} onClick={() => setLightbox(null)}>
+          <button
+            type="button"
+            className={styles.lightboxClose}
+            onClick={() => setLightbox(null)}
+            aria-label="Cerrar"
+          >
+            <X size={22} />
+          </button>
+          <div className={styles.lightboxContent} onClick={(e) => e.stopPropagation()}>
+            {lightbox.type === "image" ? (
+              <img src={lightbox.url} alt={currentLesson?.nombre || "Documento"} className={styles.lightboxImage} />
+            ) : (
+              <iframe src={lightbox.url} className={styles.lightboxPdf} title={currentLesson?.nombre || "Documento"} />
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
