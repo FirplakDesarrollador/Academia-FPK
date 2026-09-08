@@ -9,10 +9,11 @@ import styles from "./page.module.css";
  * Recibe el magic link generado por Talento Humano (admin.generateLink type=magiclink)
  * y consume la sesion de Supabase, sea cual sea el flow configurado en el proyecto:
  *  - PKCE: la URL trae `?code=...` y hay que intercambiarlo explicitamente.
- *  - Implicito/hash: la URL trae `#access_token=...&refresh_token=...`; supabase-js
- *    ya la detecta y guarda la sesion automaticamente al inicializar el cliente
- *    (detectSessionInUrl: true, que es el default en src/lib/supabase.ts) — no hay
- *    que hacer nada extra para ese caso, solo esperar a que getSession() la resuelva.
+ *  - Implicito/hash: la URL trae `#access_token=...&refresh_token=...`. En vez de
+ *    confiar en la deteccion automatica de supabase-js (detectSessionInUrl, que
+ *    depende de que el cliente termine de inicializarse antes de que llamemos a
+ *    getSession(), una carrera dificil de garantizar), lo leemos y lo consumimos
+ *    explicitamente con setSession() para que sea deterministico.
  */
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -25,25 +26,48 @@ export default function AuthCallbackPage() {
       try {
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
-        const errorDescription = url.searchParams.get("error_description");
+        const errorDescription =
+          url.searchParams.get("error_description") ||
+          new URLSearchParams(window.location.hash.replace(/^#/, "")).get("error_description");
 
         if (errorDescription) {
-          throw new Error(errorDescription);
+          throw new Error(decodeURIComponent(errorDescription.replace(/\+/g, " ")));
         }
 
-        if (code) {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+
+        console.log("[auth/callback] modo detectado:", {
+          hasCode: !!code,
+          hasHashTokens: !!(accessToken && refreshToken),
+        });
+
+        if (accessToken && refreshToken) {
+          // Flujo implicito/hash: fijamos la sesion explicitamente con los tokens
+          // que ya vienen en la URL, sin depender de la deteccion automatica.
+          const { error: setError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (setError) throw setError;
+          // Limpiamos el hash de la URL para no dejar el token visible/reusable.
+          window.history.replaceState(null, "", window.location.pathname);
+        } else if (code) {
+          // Flujo PKCE
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) throw exchangeError;
+        } else {
+          throw new Error("El enlace no contiene un token de sesión válido.");
         }
 
-        // Si vino como hash (#access_token=...), supabase-js ya la detecto y
-        // guardo la sesion al inicializar el cliente. En ambos casos, confirmamos
-        // aqui que efectivamente haya una sesion activa.
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
         if (cancelled) return;
 
         if (session) {
+          console.log("[auth/callback] sesión establecida para:", session.user.email);
           router.replace("/");
           router.refresh();
         } else {
@@ -53,7 +77,7 @@ export default function AuthCallbackPage() {
           }, 2500);
         }
       } catch (err: any) {
-        console.error("Error consumiendo magic link:", err);
+        console.error("[auth/callback] Error consumiendo magic link:", err);
         if (cancelled) return;
         setError(err?.message || "No se pudo iniciar sesión con el enlace recibido.");
         setTimeout(() => {
