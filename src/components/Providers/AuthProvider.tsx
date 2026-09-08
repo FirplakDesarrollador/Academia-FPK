@@ -46,9 +46,15 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+// Rutas publicas donde no se debe forzar la redireccion a /login: el login en si,
+// y el callback de magic link (necesita tiempo para intercambiar el codigo/hash
+// por una sesion antes de que exista `currentSession`).
+const PUBLIC_PATHS = ["/login", "/auth/callback"];
+
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isPublicPath = PUBLIC_PATHS.includes(pathname);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +69,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           setProfile(null);
           setLoading(false);
         }
-        if (pathname !== "/login") router.push("/login");
+        if (!isPublicPath) router.push("/login");
         return;
       }
 
@@ -163,7 +169,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           setProfile(null);
           setLoading(false);
         }
-        if (pathname !== "/login") {
+        if (!isPublicPath) {
           router.push("/login");
         }
       }
@@ -173,7 +179,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [pathname, router]);
+  }, [pathname, router, isPublicPath]);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -181,7 +187,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
 
   // Skip rendering children if we are protecting the route and still loading
-  if (loading && pathname !== "/login") {
+  if (loading && !isPublicPath) {
     return (
       <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
         Validando credenciales...
