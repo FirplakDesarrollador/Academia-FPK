@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase";
 import styles from "./page.module.css";
 
@@ -368,10 +369,65 @@ export default function ReporteCalificador() {
   const filteredUsuarios = usuarios.filter(u => {
     if (!searchTerm) return true;
     const lowerTerm = searchTerm.toLowerCase();
-    return u.nombres.toLowerCase().includes(lowerTerm) || 
-           u.apellidos.toLowerCase().includes(lowerTerm) || 
+    return u.nombres.toLowerCase().includes(lowerTerm) ||
+           u.apellidos.toLowerCase().includes(lowerTerm) ||
            u.cedula.toLowerCase().includes(lowerTerm);
   });
+
+  // Exporta exactamente lo que se está viendo (curso seleccionado + búsqueda activa) a un .xlsx
+  const handleExportExcel = () => {
+    const cursoNombre = cursos.find(c => c.id === selectedCurso)?.nombre || "curso";
+
+    const rows = filteredUsuarios.map(u => {
+      let userTotal = 0;
+      let userMax = 0;
+
+      const row: Record<string, string | number> = {
+        "Estudiante": `${u.nombres} ${u.apellidos}`.trim(),
+        "Cédula": u.cedula || "",
+        "Estado": u.origen === "sin_relacionar" ? "Sin relacionar" : "",
+      };
+
+      lecciones.forEach(l => {
+        const c = calificaciones[`${u.usuario_id}_${l.id}`];
+        const isGradeable = l.tipo === 'evaluacion' || l.tipo === 'evidencia';
+
+        if (isGradeable) {
+          const rawMax = maxScores[l.id] || 100;
+          userMax += 100;
+          if (c) userTotal += (Number(c.puntuacion || 0) / rawMax) * 100;
+        }
+
+        let cellValue: string;
+        if (l.tipo === 'evaluacion') {
+          cellValue = c ? String(c.puntuacion) : "-";
+        } else if (l.tipo === 'evidencia') {
+          cellValue = c ? `${c.puntuacion}/100` : "Sin entrega";
+        } else if (l.tipo === 'progreso') {
+          cellValue = String(vistas[`${u.usuario_id}_${l.id}`] || "0 / 60");
+        } else {
+          cellValue = vistas[`${u.usuario_id}_${l.id}`] ? "Visto" : "-";
+        }
+        row[l.nombre] = cellValue;
+      });
+
+      const pct = userMax > 0 ? Math.round((userTotal / userMax) * 100) : 0;
+      row["Total (%)"] = pct;
+      row["Puntos"] = `${userTotal.toFixed(0)} / ${userMax}`;
+
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 28 }, { wch: 14 }, { wch: 14 }, ...lecciones.map(() => ({ wch: 20 })), { wch: 10 }, { wch: 12 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
+
+    const fecha = new Date().toISOString().slice(0, 10);
+    const nombreArchivo = `Calificaciones_${cursoNombre.replace(/[^a-zA-Z0-9]+/g, "_")}_${fecha}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
+  };
 
   return (
     <div className={styles.container}>
@@ -398,6 +454,16 @@ export default function ReporteCalificador() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
+        <button
+          type="button"
+          className={styles.exportBtn}
+          onClick={handleExportExcel}
+          disabled={loading || filteredUsuarios.length === 0}
+          title="Exportar la tabla visible a Excel"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar a Excel
+        </button>
       </div>
 
       {loading ? (
