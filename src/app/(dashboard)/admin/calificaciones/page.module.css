@@ -60,6 +60,31 @@
   box-shadow: 0 0 0 2px rgba(37, 65, 83, 0.1);
 }
 
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.exportBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .tableWrapper {
   background: white;
   border-radius: var(--radius);
@@ -389,9 +414,11 @@
   }
 
   .select,
-  .searchInput {
+  .searchInput,
+  .exportBtn {
     min-width: 0;
     width: 100%;
+    justify-content: center;
   }
 
   .modalContent {
