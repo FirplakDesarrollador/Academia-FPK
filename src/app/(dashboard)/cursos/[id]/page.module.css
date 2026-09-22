@@ -28,6 +28,75 @@
   margin-bottom: 20px;
 }
 
+.certificateBanner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #254153 0%, #35617d 100%);
+  color: white;
+  padding: 18px 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px rgba(37, 65, 83, 0.25);
+}
+
+.certificateIcon {
+  flex-shrink: 0;
+  color: #f5f1ea;
+}
+
+.certificateText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.certificateText strong {
+  font-size: 1rem;
+}
+
+.certificateText span {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.certificateBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f1ea;
+  color: #254153;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.certificateBtn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .certificateBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .certificateBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .editToggleBtn {
   background: #f8fafc;
   color: #334155;

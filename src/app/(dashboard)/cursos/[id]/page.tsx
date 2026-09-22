@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, ChevronDown, ChevronUp, PlayCircle, FileText, Settings, Edit2, Plus, Move, MoreVertical, Eye, CheckCircle } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, PlayCircle, FileText, Settings, Edit2, Plus, Move, MoreVertical, Eye, CheckCircle, Award, Download } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { useAuth } from "@/components/Providers/AuthProvider";
 import styles from "./page.module.css";
 import ColaborativasContent from "@/components/Courses/ColaborativasContent";
@@ -388,6 +389,107 @@ export default function CourseDetail() {
     }));
   };
 
+  // Convierte la imagen del logo (servida desde /public) a un data URL, que es lo
+  // que jsPDF necesita para incrustar imagenes (no acepta una URL directamente).
+  const loadImageAsDataURL = async (url: string): Promise<string> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!course || !profile) return;
+
+    const NAVY = "#254153";
+    const TEAL = "#749094";
+    const INK = "#1d1d1b";
+    const CREAM = "#f5f1ea";
+    const LOGO_ASPECT = 936 / 1828; // alto/ancho real del logo recortado
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Fondo
+    doc.setFillColor(CREAM);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // Marco doble (borde grueso navy + borde fino teal)
+    doc.setDrawColor(NAVY);
+    doc.setLineWidth(1.4);
+    doc.rect(8, 8, pageWidth - 16, pageHeight - 16);
+    doc.setDrawColor(TEAL);
+    doc.setLineWidth(0.5);
+    doc.rect(12, 12, pageWidth - 24, pageHeight - 24);
+
+    // Logo
+    try {
+      const logoDataUrl = await loadImageAsDataURL("/images/firplak-logo.png");
+      const logoW = 58;
+      const logoH = logoW * LOGO_ASPECT;
+      doc.addImage(logoDataUrl, "PNG", (pageWidth - logoW) / 2, 20, logoW, logoH);
+    } catch (err) {
+      console.error("No se pudo cargar el logo para el certificado:", err);
+    }
+
+    const centerX = pageWidth / 2;
+
+    doc.setTextColor(NAVY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(28);
+    doc.text("CERTIFICADO DE FINALIZACIÓN", centerX, 75, { align: "center" });
+
+    doc.setDrawColor(TEAL);
+    doc.setLineWidth(0.6);
+    doc.line(centerX - 38, 80, centerX + 38, 80);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.setTextColor(INK);
+    doc.text("Se certifica que", centerX, 96, { align: "center" });
+
+    const nombreCompleto = `${profile.nombres} ${profile.apellidos}`.trim();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(25);
+    doc.setTextColor(NAVY);
+    doc.text(nombreCompleto, centerX, 112, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.setTextColor(INK);
+    doc.text("completó satisfactoriamente el curso de formación", centerX, 125, { align: "center" });
+
+    doc.setFont("helvetica", "bolditalic");
+    doc.setFontSize(17);
+    doc.setTextColor(NAVY);
+    doc.text(`"${course.nombre}"`, centerX, 138, { align: "center" });
+
+    const fecha = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(INK);
+    doc.text(`Emitido el ${fecha}`, centerX, 154, { align: "center" });
+
+    doc.setDrawColor(INK);
+    doc.setLineWidth(0.3);
+    doc.line(centerX - 32, pageHeight - 34, centerX + 32, pageHeight - 34);
+    doc.setFontSize(10);
+    doc.text("Firplak S.A. — Academia de Formación", centerX, pageHeight - 27, { align: "center" });
+
+    const codigo = `${profile.cedula || "SN"}-${course.id.slice(0, 8).toUpperCase()}`;
+    doc.setFontSize(8);
+    doc.setTextColor(TEAL);
+    doc.text(`Código de verificación: ${codigo}`, centerX, pageHeight - 15, { align: "center" });
+
+    const nombreArchivo = `Certificado_${course.nombre}_${nombreCompleto}.pdf`.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    doc.save(nombreArchivo);
+  };
+
   if (loading) {
     return <div className={styles.loading}>Cargando detalles del curso...</div>;
   }
@@ -403,6 +505,29 @@ export default function CourseDetail() {
     );
   }
 
+  const isColaborativas = course.id === "283c7f14-4c73-47df-a0be-ad8e19ab8c3a";
+  let isCourseComplete = false;
+  if (isColaborativas) {
+    const tieneEvidencia = inscriptionMetadata?.evidencias?.['Creación de tarea en planner'] ? 1 : 0;
+    isCourseComplete = (completedLessons.size + tieneEvidencia) >= 62;
+  } else {
+    const totalLessons = course.modulos.reduce((sum, m) => sum + (m.lecciones?.length || 0), 0);
+    isCourseComplete = totalLessons > 0 && completedLessons.size >= totalLessons;
+  }
+
+  const certificateBanner = isCourseComplete && (
+    <div className={styles.certificateBanner}>
+      <Award size={28} className={styles.certificateIcon} />
+      <div className={styles.certificateText}>
+        <strong>¡Felicidades, completaste el curso!</strong>
+        <span>Ya puedes descargar tu certificado de finalización.</span>
+      </div>
+      <button className={styles.certificateBtn} onClick={handleDownloadCertificate}>
+        <Download size={16} /> Descargar certificado
+      </button>
+    </div>
+  );
+
   if (course.id === "283c7f14-4c73-47df-a0be-ad8e19ab8c3a") {
     return (
       <div className={`${styles.container} animate-fade-in`}>
@@ -413,7 +538,7 @@ export default function CourseDetail() {
         {/* Admin Controls */}
         {isAdmin && (
           <div className={styles.adminControls}>
-            <button 
+            <button
               className={`${styles.editToggleBtn} ${isEditing ? styles.editActive : ""}`}
               onClick={() => setIsEditing(!isEditing)}
             >
@@ -426,7 +551,9 @@ export default function CourseDetail() {
           </div>
         )}
 
-        <ColaborativasContent 
+        {certificateBanner}
+
+        <ColaborativasContent
           completedLessons={completedLessons} 
           onToggleComplete={async (title, metadata) => {
             const newCompleted = new Set(completedLessons);
@@ -495,6 +622,8 @@ export default function CourseDetail() {
           </button>
         </div>
       )}
+
+      {certificateBanner}
 
       {/* Course Banner / General Section */}
       <section className={styles.generalSection}>
