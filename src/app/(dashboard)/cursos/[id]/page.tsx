@@ -186,6 +186,7 @@ export default function CourseDetail() {
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [inscriptionId, setInscriptionId] = useState<string | null>(null);
   const [inscriptionMetadata, setInscriptionMetadata] = useState<any>({});
+  const [calificaciones, setCalificaciones] = useState<Record<string, { puntuacion: number; puntuacion_maxima: number }>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -287,7 +288,27 @@ export default function CourseDetail() {
             setCompletedLessons(newCompleted);
           }
         }
-        
+
+        // Notas del estudiante en este curso (para habilitar el certificado)
+        if (profile?.id) {
+          const { data: califData, error: califError } = await supabase
+            .schema("academia")
+            .from("calificaciones")
+            .select("leccion_id, puntuacion, puntuacion_maxima")
+            .eq("curso_id", params.id as string)
+            .eq("usuario_id", profile.id);
+
+          if (califError) {
+            console.error("Error loading calificaciones:", califError);
+          } else if (califData) {
+            const califLookup: Record<string, { puntuacion: number; puntuacion_maxima: number }> = {};
+            califData.forEach(c => {
+              califLookup[c.leccion_id] = { puntuacion: Number(c.puntuacion) || 0, puntuacion_maxima: Number(c.puntuacion_maxima) || 100 };
+            });
+            setCalificaciones(califLookup);
+          }
+        }
+
         if (data?.modulos && data.modulos.length > 0) {
           setExpandedModules({ [data.modulos[0].id]: true });
         }
@@ -515,7 +536,28 @@ export default function CourseDetail() {
     isCourseComplete = totalLessons > 0 && completedLessons.size >= totalLessons;
   }
 
-  const certificateBanner = isCourseComplete && (
+  // Promedio de las evaluaciones del curso (misma normalizacion a /100 por leccion
+  // que usa el Reporte del Calificador), para exigir "buena nota" ademas del 100%.
+  const MIN_CERTIFICATE_SCORE = 60;
+  let gradedTotal = 0;
+  let gradedMax = 0;
+  course.modulos.forEach(m => {
+    (m.lecciones || []).forEach(l => {
+      if (l.tipo === 'evaluacion' || l.tipo === 'evidencia') {
+        gradedMax += 100;
+        const c = calificaciones[l.id];
+        if (c) {
+          gradedTotal += (c.puntuacion / (c.puntuacion_maxima || 100)) * 100;
+        }
+      }
+    });
+  });
+  // Si el curso no tiene evaluaciones calificables, no bloqueamos el certificado por nota.
+  const averageGrade = gradedMax > 0 ? (gradedTotal / gradedMax) * 100 : null;
+  const hasGoodGrades = averageGrade === null || averageGrade >= MIN_CERTIFICATE_SCORE;
+  const canDownloadCertificate = isCourseComplete && hasGoodGrades;
+
+  const certificateBanner = canDownloadCertificate ? (
     <div className={styles.certificateBanner}>
       <Award size={28} className={styles.certificateIcon} />
       <div className={styles.certificateText}>
@@ -526,7 +568,17 @@ export default function CourseDetail() {
         <Download size={16} /> Descargar certificado
       </button>
     </div>
-  );
+  ) : isCourseComplete && !hasGoodGrades ? (
+    <div className={styles.certificateBannerPending}>
+      <Award size={24} className={styles.certificatePendingIcon} />
+      <div className={styles.certificateText}>
+        <strong>Completaste el curso, pero aún no calificas para el certificado</strong>
+        <span>
+          Tu promedio en las evaluaciones es {Math.round(averageGrade || 0)}%. Necesitas al menos {MIN_CERTIFICATE_SCORE}% para poder descargarlo.
+        </span>
+      </div>
+    </div>
+  ) : null;
 
   if (course.id === "283c7f14-4c73-47df-a0be-ad8e19ab8c3a") {
     return (
