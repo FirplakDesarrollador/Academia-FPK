@@ -526,19 +526,22 @@ export default function CourseDetail() {
     );
   }
 
+  const MIN_COMPLETION_PCT = 90;
+  const MIN_CERTIFICATE_SCORE = 80;
+
   const isColaborativas = course.id === "283c7f14-4c73-47df-a0be-ad8e19ab8c3a";
-  let isCourseComplete = false;
+  let completionPct = 0;
   if (isColaborativas) {
     const tieneEvidencia = inscriptionMetadata?.evidencias?.['Creación de tarea en planner'] ? 1 : 0;
-    isCourseComplete = (completedLessons.size + tieneEvidencia) >= 62;
+    completionPct = ((completedLessons.size + tieneEvidencia) / 62) * 100;
   } else {
     const totalLessons = course.modulos.reduce((sum, m) => sum + (m.lecciones?.length || 0), 0);
-    isCourseComplete = totalLessons > 0 && completedLessons.size >= totalLessons;
+    completionPct = totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
   }
+  const isCourseComplete = completionPct >= MIN_COMPLETION_PCT;
 
   // Promedio de las evaluaciones del curso (misma normalizacion a /100 por leccion
-  // que usa el Reporte del Calificador), para exigir "buena nota" ademas del 100%.
-  const MIN_CERTIFICATE_SCORE = 60;
+  // que usa el Reporte del Calificador), para exigir "buena nota" ademas del progreso.
   let gradedTotal = 0;
   let gradedMax = 0;
   course.modulos.forEach(m => {
