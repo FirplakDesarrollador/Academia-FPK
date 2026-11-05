@@ -129,15 +129,29 @@ export default function ReporteCalificador() {
         const { data: actsData, error: actsError } = await supabase
           .schema("academia")
           .from("lecciones")
-          .select("id, nombre, orden, tipo, modulos!inner(curso_id, orden)")
+          .select("id, nombre, orden, tipo, contenido, modulos!inner(curso_id, orden)")
           .eq("modulos.curso_id", selectedCurso)
           .order("orden", { referencedTable: "modulos", ascending: true });
-          
+
         if (actsError) console.error("Error loading lecciones:", actsError);
 
         let sortedActs = (actsData as any[] || []).sort((a,b) => {
           if(a.modulos?.orden === b.modulos?.orden) return a.orden - b.orden;
           return (a.modulos?.orden || 0) - (b.modulos?.orden || 0);
+        });
+
+        // Para evaluaciones, el puntaje real por defecto es la cantidad de preguntas
+        // calificables (no 100): así las notas nuevas se guardan por puntos.
+        sortedActs = sortedActs.map(l => {
+          if (l.tipo !== 'evaluacion') return { ...l, puntosMax: null };
+          try {
+            const cont = typeof l.contenido === 'string' ? JSON.parse(l.contenido) : l.contenido;
+            const preguntas = cont?.preguntas || [];
+            const count = preguntas.filter((p: any) => p.tipo !== 'respuesta_abierta').length;
+            return { ...l, puntosMax: count > 0 ? count : null };
+          } catch {
+            return { ...l, puntosMax: null };
+          }
         });
 
         // C. Cargar calificaciones cruzadas en chunks para evitar límites de API (max-rows de Supabase)
@@ -311,6 +325,11 @@ export default function ReporteCalificador() {
 
     if (existing && existing.puntuacion === score && existing.retroalimentacion === retroalimentacion) return; // Nada cambió
 
+    // Máximo por defecto para notas nuevas: usa el máximo ya establecido para la lección,
+    // o la cantidad real de puntos/preguntas de la evaluación (no 100).
+    const leccion = lecciones.find(l => l.id === leccionId);
+    const defaultMax = maxScores[leccionId] || leccion?.puntosMax || 100;
+
     // Personas sin cuenta relacionada: se guardan en una tabla separada, sin retroalimentación
     if (usuarioId.startsWith("sr_") || existing?.origen === "sin_relacionar") {
       if (existing && existing.id) {
@@ -329,7 +348,7 @@ export default function ReporteCalificador() {
             apellidos: persona?.apellidos || "",
             cedula: persona?.cedula || null,
             puntuacion: score,
-            puntuacion_maxima: 100
+            puntuacion_maxima: defaultMax
           }).select("id").single();
 
         if (error) {
@@ -338,7 +357,7 @@ export default function ReporteCalificador() {
         }
 
         if (data) {
-          setCalificaciones(prev => ({...prev, [key]: { id: data.id, usuario_id: usuarioId, leccion_id: leccionId, puntuacion: score, puntuacion_maxima: 100, origen: "sin_relacionar" }}));
+          setCalificaciones(prev => ({...prev, [key]: { id: data.id, usuario_id: usuarioId, leccion_id: leccionId, puntuacion: score, puntuacion_maxima: defaultMax, origen: "sin_relacionar" }}));
         }
       }
       return;
@@ -357,9 +376,9 @@ export default function ReporteCalificador() {
            curso_id: selectedCurso, 
            usuario_id: usuarioId, 
            leccion_id: leccionId, 
-           puntuacion: score, 
+           puntuacion: score,
            retroalimentacion,
-           puntuacion_maxima: 100 
+           puntuacion_maxima: defaultMax
          }).select("id").single();
 
        if (error) {
@@ -368,7 +387,7 @@ export default function ReporteCalificador() {
        }
 
        if (data) {
-         setCalificaciones(prev => ({...prev, [key]: { id: data.id, usuario_id: usuarioId, leccion_id: leccionId, puntuacion: score, puntuacion_maxima: 100, retroalimentacion }}));
+         setCalificaciones(prev => ({...prev, [key]: { id: data.id, usuario_id: usuarioId, leccion_id: leccionId, puntuacion: score, puntuacion_maxima: defaultMax, retroalimentacion }}));
        }
     }
   };
@@ -552,16 +571,21 @@ export default function ReporteCalificador() {
                     {lecciones.map(l => {
                       const c = calificaciones[`${u.usuario_id}_${l.id}`];
 
+                      const scaleMax = c?.puntuacion_maxima || maxScores[l.id] || l.puntosMax || 100;
+
                       return (
                         <td key={l.id}>
                           {l.tipo === 'evaluacion' ? (
-                            <input 
-                              type="text"
-                              placeholder="-"
-                              className={styles.gradeInput}
-                              defaultValue={c ? c.puntuacion : ""}
-                              onBlur={(e) => handleGradeUpdate(u.usuario_id, l.id, e.target.value)}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              <input
+                                type="text"
+                                placeholder="-"
+                                className={styles.gradeInput}
+                                defaultValue={c ? c.puntuacion : ""}
+                                onBlur={(e) => handleGradeUpdate(u.usuario_id, l.id, e.target.value)}
+                              />
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>/ {scaleMax}</span>
+                            </div>
                           ) : l.tipo === 'evidencia' ? (
                             <div style={{ textAlign: 'center' }}>
                               {vistas[`${u.usuario_id}_${l.id}`] ? (
