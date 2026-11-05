@@ -45,6 +45,7 @@ export default function ReporteCalificador() {
   const [calificaciones, setCalificaciones] = useState<Record<string, Calificacion>>({});
   const [vistas, setVistas] = useState<Record<string, boolean | string>>({});
   const [maxScores, setMaxScores] = useState<Record<string, number>>({});
+  const [fechasInscripcion, setFechasInscripcion] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [modalEvidence, setModalEvidence] = useState<{ url: string, usuarioId: string, leccionId: string, puntuacion: string, retroalimentacion: string } | null>(null);
 
@@ -209,7 +210,7 @@ export default function ReporteCalificador() {
         const { data: insData, error: insError } = await supabase
           .schema("academia")
           .from("inscripciones")
-          .select("id, empleado_id, usuario_id, metadata")
+          .select("id, empleado_id, usuario_id, metadata, fecha_inscripcion")
           .eq("curso_id", selectedCurso)
           .limit(100000);
 
@@ -218,12 +219,17 @@ export default function ReporteCalificador() {
         }
 
         const insToUser: Record<string, string> = {};
+        const fechasLookup: Record<string, string> = {};
         insData?.forEach(ins => {
             if (ins.usuario_id) {
                 insToUser[ins.id] = ins.usuario_id;
             } else {
                 const u = usersData?.find(u => String(u.empleado_id) === String(ins.empleado_id));
                 if (u) insToUser[ins.id] = u.id;
+            }
+            const uId = insToUser[ins.id];
+            if (uId && ins.fecha_inscripcion) {
+                fechasLookup[uId] = ins.fecha_inscripcion;
             }
         });
 
@@ -282,6 +288,7 @@ export default function ReporteCalificador() {
         setLecciones(sortedActs);
         setCalificaciones(lookup);
         setMaxScores(lessonMaxScores);
+        setFechasInscripcion(fechasLookup);
         // Guardamos vistasLookup en el estado
         setVistas(vistasLookup);
       } catch (err) {
@@ -382,10 +389,13 @@ export default function ReporteCalificador() {
       let userTotal = 0;
       let userMax = 0;
 
-      const row: Record<string, string | number> = {
+      const fechaIso = fechasInscripcion[u.usuario_id];
+
+      const row: Record<string, string | number | Date> = {
         "Estudiante": `${u.nombres} ${u.apellidos}`.trim(),
         "Cédula": u.cedula || "",
         "Estado": u.origen === "sin_relacionar" ? "Sin relacionar" : "",
+        "Fecha de inscripción": fechaIso ? new Date(fechaIso) : "",
       };
 
       lecciones.forEach(l => {
@@ -393,33 +403,52 @@ export default function ReporteCalificador() {
         const isGradeable = l.tipo === 'evaluacion' || l.tipo === 'evidencia';
 
         if (isGradeable) {
-          const rawMax = maxScores[l.id] || 100;
+          // Usamos el máximo propio de ESTA nota, no el máximo observado en todo el
+          // curso: una sola nota cargada con máximo 100 (p. ej. puesta a mano) no debe
+          // dañar la normalización de los demás estudiantes que sí tienen el máximo real.
+          const rawMax = c?.puntuacion_maxima || maxScores[l.id] || 100;
           userMax += 100;
           if (c) userTotal += (Number(c.puntuacion || 0) / rawMax) * 100;
-        }
 
-        let cellValue: string;
-        if (l.tipo === 'evaluacion') {
-          cellValue = c ? String(c.puntuacion) : "-";
-        } else if (l.tipo === 'evidencia') {
-          cellValue = c ? `${c.puntuacion}/100` : "Sin entrega";
+          // Nota y máximo como columnas numéricas separadas (en vez de texto "9.83/10")
+          // para que en Excel se puedan ordenar y filtrar como números de verdad.
+          row[`${l.nombre} - Nota`] = c ? Number(c.puntuacion) : "";
+          row[`${l.nombre} - Máximo`] = c ? Number(c.puntuacion_maxima) : "";
         } else if (l.tipo === 'progreso') {
-          cellValue = String(vistas[`${u.usuario_id}_${l.id}`] || "0 / 60");
+          row[l.nombre] = String(vistas[`${u.usuario_id}_${l.id}`] || "0 / 60");
         } else {
-          cellValue = vistas[`${u.usuario_id}_${l.id}`] ? "Visto" : "-";
+          row[l.nombre] = vistas[`${u.usuario_id}_${l.id}`] ? "Visto" : "-";
         }
-        row[l.nombre] = cellValue;
       });
 
       const pct = userMax > 0 ? Math.round((userTotal / userMax) * 100) : 0;
       row["Total (%)"] = pct;
-      row["Puntos"] = `${userTotal.toFixed(0)} / ${userMax}`;
+      row["Puntos obtenidos"] = Number(userTotal.toFixed(0));
+      row["Puntos totales"] = userMax;
 
       return row;
     });
 
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [{ wch: 28 }, { wch: 14 }, { wch: 14 }, ...lecciones.map(() => ({ wch: 20 })), { wch: 10 }, { wch: 12 }];
+    const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+    ws["!cols"] = headers.map(h => {
+      if (h === "Estudiante") return { wch: 28 };
+      if (h === "Fecha de inscripción") return { wch: 18 };
+      if (h.includes(" - ")) return { wch: 16 };
+      return { wch: 14 };
+    });
+    // Formato de fecha legible (dd/mm/yyyy) para la columna de inscripción; json_to_sheet
+    // ya convierte los Date a número de serie de Excel con tipo "n", solo ajustamos el formato.
+    const fechaColIdx = headers.indexOf("Fecha de inscripción");
+    if (fechaColIdx !== -1) {
+      for (let r = 0; r < rows.length; r++) {
+        const cellRef = XLSX.utils.encode_cell({ r: r + 1, c: fechaColIdx });
+        const cell = ws[cellRef];
+        if (cell && cell.t === "n") {
+          cell.z = "dd/mm/yyyy";
+        }
+      }
+    }
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Calificaciones");
@@ -490,7 +519,10 @@ export default function ReporteCalificador() {
                   const isGradeable = l.tipo === 'evaluacion' || l.tipo === 'evidencia';
                   if (isGradeable) {
                     const c = calificaciones[`${u.usuario_id}_${l.id}`];
-                    const rawMax = maxScores[l.id] || 100;
+                    // Usamos el máximo propio de ESTA nota, no el máximo observado en
+                    // todo el curso: una sola nota cargada con máximo 100 (p. ej. puesta
+                    // a mano) no debe dañar la normalización de los demás estudiantes.
+                    const rawMax = c?.puntuacion_maxima || maxScores[l.id] || 100;
                     // Normalize: always count each lesson as /100
                     userMax += 100;
                     if (c) {
