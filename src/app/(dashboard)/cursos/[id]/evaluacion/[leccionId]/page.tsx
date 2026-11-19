@@ -29,11 +29,14 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
     return op?.texto || "";
   };
   
+  const MAX_ATTEMPTS = 3;
+
   const [evalData, setEvalData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [attemptCount, setAttemptCount] = useState(0);
   const [inscriptionId, setInscriptionId] = useState<string | null>(null);
   const [copiedQId, setCopiedQId] = useState<number | null>(null);
 
@@ -97,7 +100,11 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
               if (scoreData) {
                 setScore(Number(scoreData.puntuacion));
                 if (scoreData.respuestas) {
-                  setAnswers(scoreData.respuestas);
+                  const { _intentos, ...pureAnswers } = scoreData.respuestas;
+                  setAnswers(pureAnswers);
+                  setAttemptCount(typeof _intentos === 'number' ? _intentos : 1);
+                } else {
+                  setAttemptCount(1);
                 }
               }
             }
@@ -184,8 +191,10 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
 
   const handleSubmit = async () => {
     const rawScore = calculateScore();
+    const newAttemptCount = attemptCount + 1;
 
     setScore(rawScore);
+    setAttemptCount(newAttemptCount);
     setSubmitted(true);
 
     if (inscriptionId) {
@@ -210,12 +219,20 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
             usuario_id: profile.id,
             puntuacion: rawScore,
             puntuacion_maxima: totalQuestions,
-            respuestas: answers,
+            // Guardamos el número de intentos junto con las respuestas (sin agregar
+            // una columna nueva): "_intentos" no choca con los IDs de pregunta, que
+            // siempre son numéricos.
+            respuestas: { ...answers, _intentos: newAttemptCount },
             estado: 'Calificado',
             updated_at: new Date().toISOString()
           }, { onConflict: 'usuario_id, leccion_id' });
       }
     }
+  };
+
+  const handleRetry = () => {
+    setAnswers({});
+    setSubmitted(false);
   };
 
   if (loading) return <div className={styles.loading}>Cargando evaluación...</div>;
@@ -385,9 +402,19 @@ export default function FullQuizPage({ params: paramsPromise }: { params: Promis
             <h2>Revisión del intento</h2>
             <p>Puntuación: <strong>{score}</strong> / {totalQuestions}</p>
             <p>{calculateCorrectCount()} de {totalQuestions} respuestas correctas</p>
-            <Link href={`/cursos/${params.id}`} className={styles.finishBtn}>
-              Finalizar revisión y volver al curso
-            </Link>
+            <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '-12px' }}>
+              Intento {attemptCount} de {MAX_ATTEMPTS}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {attemptCount < MAX_ATTEMPTS && (
+                <button type="button" className={styles.retryBtn} onClick={handleRetry}>
+                  Reintentar evaluación
+                </button>
+              )}
+              <Link href={`/cursos/${params.id}`} className={styles.finishBtn}>
+                Finalizar revisión y volver al curso
+              </Link>
+            </div>
           </div>
         )}
       </div>
